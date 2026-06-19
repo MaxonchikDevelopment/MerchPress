@@ -4,6 +4,7 @@ import { RoleSelect } from './components/RoleSelect';
 import { CashierPage } from './pages/CashierPage';
 import { PressPage } from './pages/PressPage';
 import { AdminPage } from './pages/AdminPage';
+import { Spinner } from './components/ui/Spinner';
 
 export default function App() {
   const { user, loadingEvent } = useSession();
@@ -15,7 +16,12 @@ export default function App() {
   if (loadingEvent) {
     return (
       <div className="app">
-        <div className="content"><div className="muted">Loading…</div></div>
+        <div
+          className="content"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--text-muted)' }}
+        >
+          <Spinner /> Loading…
+        </div>
       </div>
     );
   }

@@ -15,15 +15,15 @@ export function AdminPage() {
         {(['events', 'designs', 'stats'] as Tab[]).map((t) => (
           <button
             key={t}
-            className={tab === t ? 'btn btn-primary' : 'btn'}
+            className={tab === t ? 'tab tab-active' : 'tab'}
             onClick={() => setTab(t)}
-            style={{ textTransform: 'capitalize' }}
+            aria-current={tab === t ? 'page' : undefined}
           >
             {t}
           </button>
         ))}
       </TopBar>
-      <div className="content" style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
+      <div className="content page-enter" key={tab} style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         {tab === 'events' && <AdminEventsPage />}
         {tab === 'designs' && <AdminDesignsPage />}
         {tab === 'stats' && <StatsPage />}

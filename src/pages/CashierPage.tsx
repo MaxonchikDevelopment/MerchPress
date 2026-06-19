@@ -10,6 +10,10 @@ import { DesignPicker } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
 import { AlertOverlay } from '../components/AlertOverlay';
 import { TopBar, OfflineBanner } from '../components/TopBar';
+import { SectionLabel } from '../components/ui/SectionLabel';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Toast } from '../components/ui/Toast';
+import { Spinner } from '../components/ui/Spinner';
 import type { Order, ShirtSize } from '../types/db';
 
 export function CashierPage() {
@@ -20,6 +24,7 @@ export function CashierPage() {
   // Dedupe ready alerts across refresh/reconnect (per cashier+event).
   const seenReady = useRef(new SeenSet(`mpq.seenReady.${user?.id}.${eventId}`));
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
+  const [completing, setCompleting] = useState<string[]>([]);
 
   const onReady = useCallback(
     (order: Order) => {
@@ -61,18 +66,21 @@ export function CashierPage() {
   );
 
   const complete = async (id: string) => {
+    if (completing.includes(id)) return; // double-tap guard
+    setCompleting((c) => [...c, id]);
     await supabase.rpc('set_order_status', {
       p_order_id: id,
       p_status: 'completed',
       p_user_id: user?.id,
     });
+    setCompleting((c) => c.filter((x) => x !== id));
   };
 
   if (!activeEvent) {
     return (
       <div className="app">
         <TopBar title="Cashier" />
-        <div className="content"><div className="card">No active event. Ask an admin to activate one.</div></div>
+        <div className="content"><EmptyState>No active event. Ask an admin to activate one.</EmptyState></div>
       </div>
     );
   }
@@ -81,19 +89,27 @@ export function CashierPage() {
     <div className="app">
       <TopBar title="Cashier" />
       <OfflineBanner connected={connected} />
-      <div className="content" style={{ maxWidth: 820, margin: '0 auto', width: '100%' }}>
-        <NewOrderForm designs={designs} />
+      <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+        <div className="two-col">
+          <NewOrderForm designs={designs} />
 
-        <h2 style={{ marginTop: 28 }}>Ready for pickup ({readyOrders.length})</h2>
-        <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
-          {readyOrders.map((o) => (
-            <OrderCard key={o.id} order={o} designs={designs} highlight={o.created_by === user?.id}>
-              <button className="btn btn-lg btn-ok" onClick={() => complete(o.id)}>
-                ✓ Picked up
-              </button>
-            </OrderCard>
-          ))}
-          {readyOrders.length === 0 && <div className="muted">Nothing ready yet.</div>}
+          <section>
+            <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
+            <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+              {readyOrders.map((o) => (
+                <OrderCard key={o.id} order={o} designs={designs} highlight={o.created_by === user?.id}>
+                  <button
+                    className="btn btn-lg btn-ok"
+                    disabled={completing.includes(o.id)}
+                    onClick={() => complete(o.id)}
+                  >
+                    {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
+                  </button>
+                </OrderCard>
+              ))}
+              {readyOrders.length === 0 && <EmptyState>Nothing ready yet.</EmptyState>}
+            </div>
+          </section>
         </div>
       </div>
 
@@ -112,7 +128,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const [backId, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
 
   const allowedColors = useMemo(() => {
     const chosen = designs.filter((d) => d.id === frontId || d.id === backId);
@@ -141,11 +157,11 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
     });
     setBusy(false);
     if (error) {
-      setToast(`Error: ${error.message}`);
+      setToast({ msg: `Error: ${error.message}`, tone: 'error' });
       return;
     }
     const order = data as Order;
-    setToast(`Sent to press — Order #${order.event_order_no}`);
+    setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
     setColor(null);
     setSize(null);
     setFrontId(null);
@@ -155,39 +171,44 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   };
 
   return (
-    <div className="card grid">
+    <section className="card grid" style={{ gap: 'var(--sp-5)', alignSelf: 'start' }}>
       <h2 style={{ margin: 0 }}>New order</h2>
 
       <div>
-        <div className="label">Shirt color</div>
+        <SectionLabel>Shirt color</SectionLabel>
         <ColorPicker value={color} onChange={setColor} allowed={allowedColors} />
       </div>
       <div>
-        <div className="label">Size</div>
+        <SectionLabel>Size</SectionLabel>
         <SizePicker value={size} onChange={setSize} />
       </div>
       <div>
-        <div className="label">Front print</div>
+        <SectionLabel>Front print</SectionLabel>
         <DesignPicker designs={designs} side="front" value={frontId} onChange={setFrontId} />
       </div>
       <div>
-        <div className="label">Back print</div>
+        <SectionLabel>Back print</SectionLabel>
         <DesignPicker designs={designs} side="back" value={backId} onChange={setBackId} />
       </div>
       <div>
-        <div className="label">Client name (optional)</div>
+        <SectionLabel>Client name (optional)</SectionLabel>
         <input
           value={clientName}
           onChange={(e) => setClientName(e.target.value)}
           placeholder="e.g. Anna"
+          aria-label="Client name (optional)"
+          inputMode="text"
+          enterKeyHint="done"
+          autoComplete="off"
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           style={{ width: '100%' }}
         />
       </div>
 
       <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
-        {busy ? 'Sending…' : 'Send to press →'}
+        {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
       </button>
-      {toast && <div style={{ fontWeight: 700, textAlign: 'center' }}>{toast}</div>}
-    </div>
+      {toast && <Toast message={toast.msg} tone={toast.tone} />}
+    </section>
   );
 }

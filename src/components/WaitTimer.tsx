@@ -11,10 +11,12 @@ export function WaitTimer({ since }: { since: string }) {
   }, []);
 
   const mins = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60_000));
-  const color = mins >= 15 ? '#dc2626' : mins >= 7 ? '#d97706' : 'var(--muted)';
+  const overdue = mins >= 15;
+  const color = overdue ? 'var(--danger)' : mins >= 7 ? 'var(--warn)' : 'var(--text-muted)';
 
   return (
-    <span style={{ color, fontWeight: 700 }}>
+    <span style={{ color, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+      {overdue && <span aria-hidden="true">⏱ </span>}
       waiting {mins} min
     </span>
   );

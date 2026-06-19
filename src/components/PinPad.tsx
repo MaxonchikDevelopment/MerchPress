@@ -26,36 +26,50 @@ export function PinPad({
 
   return (
     <div style={{ maxWidth: 300, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', margin: '12px 0 20px' }}>
+      <div
+        className={error ? 'shake' : undefined}
+        style={{ display: 'flex', gap: 14, justifyContent: 'center', margin: '12px 0 20px' }}
+        aria-label={`${pin.length} of 4 digits entered`}
+      >
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             style={{
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               borderRadius: '50%',
-              background: i < pin.length ? 'var(--accent)' : 'var(--panel-2)',
-              border: '1px solid var(--border)',
+              background: i < pin.length ? 'var(--accent)' : 'var(--surface-raised)',
+              border: `1px solid ${i < pin.length ? 'var(--accent)' : 'var(--border-strong)'}`,
+              transition: 'background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)',
             }}
           />
         ))}
       </div>
 
-      {error && <div style={{ color: 'var(--danger)', marginBottom: 12, fontWeight: 700 }}>{error}</div>}
+      {error && (
+        <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12, fontWeight: 700 }}>
+          {error}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {keys.map((k) => (
-          <button key={k} className="btn btn-lg" onClick={() => push(k)} disabled={busy}>
+          <button key={k} className="btn btn-lg" onClick={() => push(k)} disabled={busy} aria-label={`Digit ${k}`}>
             {k}
           </button>
         ))}
-        <button className="btn btn-lg" onClick={() => setPin('')} disabled={busy}>
+        <button className="btn btn-lg" onClick={() => setPin('')} disabled={busy} aria-label="Clear">
           C
         </button>
-        <button className="btn btn-lg" onClick={() => push('0')} disabled={busy}>
+        <button className="btn btn-lg btn-primary" onClick={() => push('0')} disabled={busy} aria-label="Digit 0">
           0
         </button>
-        <button className="btn btn-lg" onClick={() => setPin((p) => p.slice(0, -1))} disabled={busy}>
+        <button
+          className="btn btn-lg"
+          onClick={() => setPin((p) => p.slice(0, -1))}
+          disabled={busy}
+          aria-label="Backspace"
+        >
           ⌫
         </button>
       </div>

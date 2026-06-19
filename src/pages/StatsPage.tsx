@@ -5,6 +5,8 @@ import { colorLabel } from '../config';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
+import { SectionLabel } from '../components/ui/SectionLabel';
+import { EmptyState } from '../components/ui/EmptyState';
 import type { Order, OrderStats } from '../types/db';
 
 function fmtDuration(secs: number | null): string {
@@ -92,34 +94,40 @@ export function StatsPage() {
   };
 
   return (
-    <div className="grid">
+    <div className="grid" style={{ gap: 'var(--sp-5)' }}>
       <div className="row">
         <h2 style={{ margin: 0 }}>Stats</h2>
-        <select value={eventId ?? ''} onChange={(e) => setEventId(e.target.value)}>
+        <select value={eventId ?? ''} onChange={(e) => setEventId(e.target.value)} aria-label="Event">
           <option value="" disabled>Select event…</option>
           {events.map((e) => (
             <option key={e.id} value={e.id}>{e.name}{e.is_active ? ' (active)' : ''}</option>
           ))}
         </select>
         <div className="spacer" />
-        <button className="btn btn-primary" onClick={exportCsv} disabled={orders.length === 0}>
-          Export CSV
+        <button className="btn btn-secondary" onClick={exportCsv} disabled={orders.length === 0}>
+          ⭳ Export CSV
         </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-        <Kpi label="Total orders" value={stats?.total_orders ?? orders.length} />
-        <Kpi label="Completed" value={stats?.count_completed ?? 0} />
-        <Kpi label="In queue" value={(stats?.count_new ?? 0) + (stats?.count_in_progress ?? 0)} />
-        <Kpi label="Avg → ready" value={fmtDuration(stats?.avg_secs_to_ready ?? null)} />
-        <Kpi label="Avg → done" value={fmtDuration(stats?.avg_secs_to_complete ?? null)} />
-      </div>
+      {!eventId ? (
+        <EmptyState>Select an event to view its stats.</EmptyState>
+      ) : (
+        <>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+            <Kpi label="Total orders" value={stats?.total_orders ?? orders.length} />
+            <Kpi label="Completed" value={stats?.count_completed ?? 0} />
+            <Kpi label="In queue" value={(stats?.count_new ?? 0) + (stats?.count_in_progress ?? 0)} />
+            <Kpi label="Avg → ready" value={fmtDuration(stats?.avg_secs_to_ready ?? null)} />
+            <Kpi label="Avg → done" value={fmtDuration(stats?.avg_secs_to_complete ?? null)} />
+          </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-        <Breakdown title="By design" rows={byDesign} />
-        <Breakdown title="By size" rows={bySize} />
-        <Breakdown title="By color" rows={byColor} />
-      </div>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+            <Breakdown title="By design" rows={byDesign} />
+            <Breakdown title="By size" rows={bySize} />
+            <Breakdown title="By color" rows={byColor} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -127,8 +135,8 @@ export function StatsPage() {
 function Kpi({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="card">
-      <div className="muted" style={{ fontSize: 13 }}>{label}</div>
-      <div style={{ fontSize: 30, fontWeight: 900 }}>{value}</div>
+      <SectionLabel>{label}</SectionLabel>
+      <div style={{ fontSize: 32, fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{value}</div>
     </div>
   );
 }
@@ -136,12 +144,20 @@ function Kpi({ label, value }: { label: string; value: string | number }) {
 function Breakdown({ title, rows }: { title: string; rows: [string | number, number][] }) {
   return (
     <div className="card">
-      <div style={{ fontWeight: 800, marginBottom: 8 }}>{title}</div>
-      {rows.length === 0 && <div className="muted">No data</div>}
-      {rows.map(([k, n]) => (
-        <div key={String(k)} className="row" style={{ justifyContent: 'space-between' }}>
-          <span>{k}</span>
-          <span style={{ fontWeight: 700 }}>{n}</span>
+      <SectionLabel style={{ marginBottom: 'var(--sp-3)' }}>{title}</SectionLabel>
+      {rows.length === 0 && <div className="muted" style={{ fontSize: 14 }}>No data</div>}
+      {rows.map(([k, n], i) => (
+        <div
+          key={String(k)}
+          className="row"
+          style={{
+            justifyContent: 'space-between',
+            padding: '8px 0',
+            borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
+          }}
+        >
+          <span style={{ color: 'var(--text-secondary)' }}>{k}</span>
+          <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
         </div>
       ))}
     </div>

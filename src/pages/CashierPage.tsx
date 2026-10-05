@@ -207,7 +207,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
     if (requestId.current?.eventId !== activeEvent.id) {
       requestId.current = { id: crypto.randomUUID(), eventId: activeEvent.id };
     }
-    const order = await createOrder({
+    const result = await createOrder({
       eventId: activeEvent.id,
       color,
       size,
@@ -219,10 +219,15 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
       requestId: requestId.current.id,
     });
     setBusy(false);
-    if (!order) {
-      setToast({ msg: 'Not confirmed. Tap Send again.', tone: 'error' });
+    if (!result.ok) {
+      // Rejected: the server refused, nothing was created. Keep the form either way.
+      setToast({
+        msg: result.kind === 'rejected' ? `Order rejected: ${result.message}` : 'Not confirmed. Tap Send again.',
+        tone: 'error',
+      });
       return;
     }
+    const order = result.order;
     // The server returns the FIRST order for a repeated request id. If the draft was
     // edited after an unconfirmed send, that order has the old details.
     const sameDetails =

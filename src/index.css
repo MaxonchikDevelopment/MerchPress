@@ -36,6 +36,8 @@
   --status-ready-ink: #0b0c0e;
   --status-done-bg: #3a3f4a;
   --status-done-ink: #c7ccd4;
+  --status-cancelled-bg: #3a3f4a;
+  --status-cancelled-ink: #c7ccd4;
   --danger: #ef4444;
   --warn: #f59e0b;
   --ok: #34d399;
@@ -67,14 +69,6 @@
   /* ---- Touch ---- */
   --touch-min: 56px;
   --touch-lg: 72px;
-
-  /* Legacy aliases kept so any un-migrated reference still resolves. */
-  --bg: var(--surface-page);
-  --panel: var(--surface-card);
-  --panel-2: var(--surface-raised);
-  --border: var(--border-subtle);
-  --text: var(--text-primary);
-  --muted: var(--text-muted);
 
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;

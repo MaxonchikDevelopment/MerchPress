@@ -1,15 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { designPhotoUrl } from '../lib/supabase';
+import { initials } from '../lib/initials';
 import type { Design } from '../types/db';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
 
 // Image-tile picker so staff recognize prints by picture, not text.
 // `side` chooses which photo to show on the tile.

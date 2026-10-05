@@ -4,7 +4,7 @@
 export type UserRole = 'cashier' | 'press' | 'admin';
 export type ShirtSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 export type DesignType = 'big' | 'small';
-export type OrderStatus = 'new' | 'in_progress' | 'ready' | 'completed';
+export type OrderStatus = 'new' | 'in_progress' | 'ready' | 'completed' | 'cancelled';
 
 export interface EventRow {
   id: string;
@@ -13,6 +13,8 @@ export interface EventRow {
   event_date: string | null;
   is_active: boolean;
   created_at: string;
+  shirt_colors: unknown | null; // jsonb [{ key, label, hex }]; null = app defaults
+  shirt_sizes: string[] | null; // subset of XS..XXL; null = app defaults
 }
 
 export interface Staff {
@@ -30,6 +32,7 @@ export interface Design {
   photo_front: string | null;
   photo_back: string | null;
   compatible_colors: string[];
+  is_active: boolean;
   created_at: string;
 }
 
@@ -52,6 +55,9 @@ export interface Order {
   in_progress_at: string | null;
   ready_at: string | null;
   completed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  client_request_id: string | null;
 }
 
 export interface OrderStats {
@@ -62,6 +68,7 @@ export interface OrderStats {
   count_in_progress: number;
   count_ready: number;
   count_completed: number;
+  count_cancelled: number;
   avg_secs_to_ready: number | null;
   avg_secs_to_complete: number | null;
 }

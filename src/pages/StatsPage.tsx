@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { toCsv, downloadCsv } from '../lib/csv';
-import { colorLabel } from '../config';
+import { eventOptions } from '../lib/eventOptions';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -30,6 +30,10 @@ export function StatsPage() {
   const setEventId = setPickedId;
 
   const { designs } = useDesigns(eventId);
+  const { colorLabel } = useMemo(
+    () => eventOptions(events.find((e) => e.id === eventId)),
+    [events, eventId],
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
 
@@ -49,18 +53,21 @@ export function StatsPage() {
       .then(({ data }) => setStats((data as OrderStats) ?? null));
   }, [eventId]);
 
+  // Cancelled orders stay in the CSV but not in totals or breakdowns.
+  const liveOrders = useMemo(() => orders.filter((o) => o.status !== 'cancelled'), [orders]);
+
   const designName = (id: string | null) => designs.find((d) => d.id === id)?.name ?? '';
 
   const byDesign = useMemo(() => {
-    const names = orders.flatMap((o) =>
+    const names = liveOrders.flatMap((o) =>
       [o.design_front_id, o.design_back_id].filter(Boolean).map((id) => designName(id as string)),
     );
     return tally(names.filter(Boolean));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders, designs]);
+  }, [liveOrders, designs]);
 
-  const bySize = useMemo(() => tally(orders.map((o) => o.shirt_size)), [orders]);
-  const byColor = useMemo(() => tally(orders.map((o) => colorLabel(o.shirt_color))), [orders]);
+  const bySize = useMemo(() => tally(liveOrders.map((o) => o.shirt_size)), [liveOrders]);
+  const byColor = useMemo(() => tally(liveOrders.map((o) => colorLabel(o.shirt_color))), [liveOrders, colorLabel]);
 
   const exportCsv = () => {
     const rows = orders.map((o) => ({
@@ -75,6 +82,7 @@ export function StatsPage() {
       cashier: o.cashier_name ?? '',
       ready_at: o.ready_at ?? '',
       completed_at: o.completed_at ?? '',
+      cancelled_at: o.cancelled_at ?? '',
     }));
     const csv = toCsv(rows, [
       { key: 'order_no', header: 'Order #' },
@@ -88,6 +96,7 @@ export function StatsPage() {
       { key: 'cashier', header: 'Cashier' },
       { key: 'ready_at', header: 'Ready at' },
       { key: 'completed_at', header: 'Completed at' },
+      { key: 'cancelled_at', header: 'cancelled_at' },
     ]);
     const ev = events.find((e) => e.id === eventId)?.name ?? 'event';
     downloadCsv(`merchpress-${ev}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
@@ -114,9 +123,13 @@ export function StatsPage() {
       ) : (
         <>
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-            <Kpi label="Total orders" value={stats?.total_orders ?? orders.length} />
+            <Kpi
+              label="Total orders"
+              value={stats ? stats.total_orders - stats.count_cancelled : liveOrders.length}
+            />
             <Kpi label="Completed" value={stats?.count_completed ?? 0} />
             <Kpi label="In queue" value={(stats?.count_new ?? 0) + (stats?.count_in_progress ?? 0)} />
+            <Kpi label="Cancelled" value={stats?.count_cancelled ?? 0} />
             <Kpi label="Avg → ready" value={fmtDuration(stats?.avg_secs_to_ready ?? null)} />
             <Kpi label="Avg → done" value={fmtDuration(stats?.avg_secs_to_complete ?? null)} />
           </div>

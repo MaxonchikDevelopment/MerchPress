@@ -1,18 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { designPhotoUrl } from '../lib/supabase';
-import { colorLabel } from '../config';
+import { initials } from '../lib/initials';
+import { useSession } from '../context/SessionContext';
+import { eventOptions } from '../lib/eventOptions';
 import type { Design, Order } from '../types/db';
 import { StatusBadge } from './StatusBadge';
 import { WaitTimer } from './WaitTimer';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
 
 // Design thumbnail with graceful fallback: shows the print photo, or the
 // design's initials on a muted tile when the photo is missing or fails to load.
@@ -75,6 +68,9 @@ export function OrderCard({
   alert?: boolean; // pulse to escalate (overdue)
   children?: ReactNode;
 }) {
+  // Press and Cashier only list orders of the active event.
+  const { activeEvent } = useSession();
+  const { colorLabel } = eventOptions(activeEvent);
   const front = designs.find((d) => d.id === order.design_front_id);
   const back = designs.find((d) => d.id === order.design_back_id);
 
@@ -100,7 +96,7 @@ export function OrderCard({
           </span>
         )}
         <div className="spacer" />
-        {showWait && order.status !== 'completed' && <WaitTimer since={order.new_at} />}
+        {showWait && order.status !== 'completed' && order.status !== 'cancelled' && <WaitTimer since={order.new_at} />}
       </div>
 
       <div className="row" style={{ gap: 'var(--sp-5)' }}>

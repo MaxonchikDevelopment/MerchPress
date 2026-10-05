@@ -4,16 +4,13 @@ import type { EventRow } from '../types/db';
 
 export function useEvents() {
   const [events, setEvents] = useState<EventRow[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    setLoading(true);
     const { data } = await supabase
       .from('events')
       .select('*')
       .order('created_at', { ascending: false });
     setEvents((data as EventRow[]) ?? []);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -32,15 +29,26 @@ export function useEvents() {
     [reload],
   );
 
-  // Make exactly one event active (the partial unique index forbids two).
-  const activateEvent = useCallback(
-    async (id: string) => {
-      await supabase.from('events').update({ is_active: false }).eq('is_active', true);
-      await supabase.from('events').update({ is_active: true }).eq('id', id);
+  // Direct update of an event row. Returns an error message, or null on success.
+  const updateEvent = useCallback(
+    async (id: string, patch: Partial<Omit<EventRow, 'id' | 'created_at' | 'is_active'>>): Promise<string | null> => {
+      const { error } = await supabase.from('events').update(patch).eq('id', id);
       await reload();
+      return error ? `Couldn't save the event: ${error.message}` : null;
     },
     [reload],
   );
 
-  return { events, loading, reload, createEvent, activateEvent };
+  // Make exactly one event active, atomically, through activate_event.
+  // Returns an error message, or null on success.
+  const activateEvent = useCallback(
+    async (id: string): Promise<string | null> => {
+      const { error } = await supabase.rpc('activate_event', { p_event_id: id });
+      await reload();
+      return error ? `Couldn't activate the event: ${error.message}` : null;
+    },
+    [reload],
+  );
+
+  return { events, reload, createEvent, updateEvent, activateEvent };
 }

@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { setOrderStatus } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
-import { useOrders } from '../hooks/useOrders';
+import { useOrders, type LoadKind } from '../hooks/useOrders';
+import { useCancelOrder } from '../hooks/useCancelOrder';
 import { OrderCard } from '../components/OrderCard';
 import { TopBar, OfflineBanner } from '../components/TopBar';
+import { SoundGate } from '../components/SoundGate';
+import { Toast } from '../components/ui/Toast';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, OrderStatus } from '../types/db';
@@ -16,8 +19,10 @@ export function PressPage() {
   const eventId = activeEvent?.id ?? null;
   const { designs } = useDesigns(eventId);
 
-  const seenNew = useRef(new SeenSet(`mpq.seenNew.${eventId}`));
+  const seenNew = useMemo(() => new SeenSet(`mpq.seenNew.${eventId}`), [eventId]);
   const [busyIds, setBusyIds] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Tick so overdue edge/pulse escalates over time (visual only; never re-sorts).
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -25,15 +30,31 @@ export function PressPage() {
     return () => clearInterval(t);
   }, []);
 
-  const onNew = useCallback((order: Order) => {
-    if (seenNew.current.markIfNew(order.id)) alertNewOrder();
-  }, []);
+  const onNew = useCallback(
+    (order: Order) => {
+      if (seenNew.markIfNew(order.id)) alertNewOrder();
+    },
+    [seenNew],
+  );
 
-  const onLoaded = useCallback((list: Order[]) => {
-    seenNew.current.seed(list.map((o) => o.id)); // don't alert for orders already loaded
-  }, []);
+  const onLoaded = useCallback(
+    (list: Order[], kind: LoadKind) => {
+      // Refetch after a gap: one sound for the batch if any 'new' order was missed.
+      const missed = kind === 'refetch' && list.some((o) => o.status === 'new' && !seenNew.has(o.id));
+      seenNew.seed(list.map((o) => o.id)); // initial load seeds silently
+      if (missed) alertNewOrder();
+    },
+    [seenNew],
+  );
 
-  const { orders, connected } = useOrders(eventId, { onNew, onLoaded });
+  const { orders, connected, reload } = useOrders(eventId, { onNew, onLoaded });
+
+  const showError = useCallback((message: string) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+  const { askCancel, dialog: cancelDialog } = useCancelOrder(user?.id, showError, () => void reload());
 
   const queue = useMemo(
     () =>
@@ -43,15 +64,13 @@ export function PressPage() {
     [orders],
   );
 
-  const setStatus = async (id: string, status: OrderStatus) => {
+  const setStatus = async (order: Order, status: OrderStatus) => {
+    const id = order.id;
     if (busyIds.includes(id)) return; // double-tap guard
     setBusyIds((b) => [...b, id]);
-    await supabase.rpc('set_order_status', {
-      p_order_id: id,
-      p_status: status,
-      p_user_id: user?.id,
-    });
+    const ok = await setOrderStatus(id, status, user?.id);
     setBusyIds((b) => b.filter((x) => x !== id));
+    if (!ok) showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
   };
 
   if (!activeEvent) {
@@ -65,9 +84,10 @@ export function PressPage() {
 
   return (
     <div className="app">
-      <TopBar title="Press queue" />
+      <TopBar title="Press queue" soundRetry />
       <OfflineBanner connected={connected} />
       <div className="content">
+        {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
           {queue.length} in queue
         </div>
@@ -86,20 +106,23 @@ export function PressPage() {
             return (
               <OrderCard key={o.id} order={o} designs={designs} showWait edgeColor={edgeColor} alert={overdue}>
                 {o.status === 'new' ? (
-                  <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => setStatus(o.id, 'in_progress')}>
+                  <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => setStatus(o, 'in_progress')}>
                     {busy ? <><Spinner /> …</> : 'Claim — start printing'}
                   </button>
                 ) : (
-                  <button className="btn btn-lg btn-ok" disabled={busy} onClick={() => setStatus(o.id, 'ready')}>
+                  <button className="btn btn-lg btn-ok" disabled={busy} onClick={() => setStatus(o, 'ready')}>
                     {busy ? <><Spinner /> …</> : '✓ Ready'}
                   </button>
                 )}
+                <button className="btn btn-text" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
               </OrderCard>
             );
           })}
           {queue.length === 0 && <EmptyState>Queue is empty 🎉</EmptyState>}
         </div>
       </div>
+      <SoundGate />
+      {cancelDialog}
     </div>
   );
 }

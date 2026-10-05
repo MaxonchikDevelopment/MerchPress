@@ -1,13 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { eventOptions } from '../lib/eventOptions';
+import { createOrder } from '../lib/createOrder';
+import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
-import { useOrders } from '../hooks/useOrders';
+import { useOrders, type LoadKind } from '../hooks/useOrders';
+import { useCancelOrder } from '../hooks/useCancelOrder';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
 import { DesignPicker } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
+import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
 import { TopBar, OfflineBanner } from '../components/TopBar';
 import { SectionLabel } from '../components/ui/SectionLabel';
@@ -19,37 +23,70 @@ import type { Order, ShirtSize } from '../types/db';
 export function CashierPage() {
   const { user, activeEvent } = useSession();
   const eventId = activeEvent?.id ?? null;
-  const { designs } = useDesigns(eventId);
+  const { designs, activeDesigns } = useDesigns(eventId);
 
   // Dedupe ready alerts across refresh/reconnect (per cashier+event).
-  const seenReady = useRef(new SeenSet(`mpq.seenReady.${user?.id}.${eventId}`));
+  const userId = user?.id;
+  const seenReady = useMemo(() => new SeenSet(`mpq.seenReady.${userId}.${eventId}`), [userId, eventId]);
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
   const [completing, setCompleting] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const onReady = useCallback(
     (order: Order) => {
-      if (order.created_by !== user?.id) return; // only my own orders sound
-      if (!seenReady.current.markIfNew(order.id)) return; // already alerted
+      if (order.created_by !== userId) return; // only my own orders sound
+      if (!seenReady.markIfNew(order.id)) return; // already alerted
       alertReady();
       setOverlay({
         title: `Order #${order.event_order_no} ready`,
         subtitle: order.client_name ?? undefined,
       });
     },
-    [user?.id],
+    [userId, seenReady],
   );
 
   const onLoaded = useCallback(
-    (list: Order[]) => {
-      // Seed dedupe with orders already ready for me so a refresh won't re-alert.
-      seenReady.current.seed(
-        list.filter((o) => o.status === 'ready' && o.created_by === user?.id).map((o) => o.id),
+    (list: Order[], kind: LoadKind) => {
+      const mine = list.filter((o) => o.status === 'ready' && o.created_by === userId);
+      if (kind === 'initial') {
+        // Seed dedupe with orders already ready for me so a refresh won't re-alert.
+        seenReady.seed(mine.map((o) => o.id));
+        return;
+      }
+      // Refetch after a gap: one alert for the batch of my orders that went ready unseen.
+      const missed = mine.filter((o) => seenReady.markIfNew(o.id));
+      if (missed.length === 0) return;
+      alertReady();
+      setOverlay(
+        missed.length === 1
+          ? {
+              title: `Order #${missed[0].event_order_no} ready`,
+              subtitle: missed[0].client_name ?? undefined,
+            }
+          : { title: `Orders ${missed.map((o) => `#${o.event_order_no}`).join(', ')} ready` },
       );
     },
-    [user?.id],
+    [userId, seenReady],
   );
 
-  const { orders, connected } = useOrders(eventId, { onReady, onLoaded });
+  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded });
+
+  const showError = useCallback((message: string) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+  const { askCancel, dialog: cancelDialog } = useCancelOrder(userId, showError, () => void reload());
+
+  // This cashier's own orders still waiting for or being worked by press.
+  const myOpenOrders = useMemo(
+    () =>
+      orders
+        .filter((o) => (o.status === 'new' || o.status === 'in_progress') && o.created_by === userId)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at)), // FIFO
+    [orders, userId],
+  );
 
   const readyOrders = useMemo(
     () =>
@@ -65,15 +102,13 @@ export function CashierPage() {
     [orders, user?.id],
   );
 
-  const complete = async (id: string) => {
+  const complete = async (order: Order) => {
+    const id = order.id;
     if (completing.includes(id)) return; // double-tap guard
     setCompleting((c) => [...c, id]);
-    await supabase.rpc('set_order_status', {
-      p_order_id: id,
-      p_status: 'completed',
-      p_user_id: user?.id,
-    });
+    const ok = await setOrderStatus(id, 'completed', user?.id);
     setCompleting((c) => c.filter((x) => x !== id));
+    if (!ok) showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
   };
 
   if (!activeEvent) {
@@ -87,13 +122,23 @@ export function CashierPage() {
 
   return (
     <div className="app">
-      <TopBar title="Cashier" />
+      <TopBar title="Cashier" soundRetry />
       <OfflineBanner connected={connected} />
       <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">
-          <NewOrderForm designs={designs} />
+          <NewOrderForm designs={activeDesigns} />
 
           <section>
+            {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
+            <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
+            <div className="grid" style={{ gridTemplateColumns: '1fr', marginBottom: 'var(--sp-5)' }}>
+              {myOpenOrders.map((o) => (
+                <OrderCard key={o.id} order={o} designs={designs}>
+                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
+                </OrderCard>
+              ))}
+              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
+            </div>
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
               {readyOrders.map((o) => (
@@ -101,10 +146,11 @@ export function CashierPage() {
                   <button
                     className="btn btn-lg btn-ok"
                     disabled={completing.includes(o.id)}
-                    onClick={() => complete(o.id)}
+                    onClick={() => complete(o)}
                   >
                     {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
                   </button>
+                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {readyOrders.length === 0 && <EmptyState>Nothing ready yet.</EmptyState>}
@@ -113,6 +159,8 @@ export function CashierPage() {
         </div>
       </div>
 
+      <SoundGate />
+      {cancelDialog}
       {overlay && (
         <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => setOverlay(null)} />
       )}
@@ -122,13 +170,24 @@ export function CashierPage() {
 
 function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['designs'] }) {
   const { user, activeEvent } = useSession();
-  const [color, setColor] = useState<string | null>(null);
-  const [size, setSize] = useState<ShirtSize | null>(null);
-  const [frontId, setFrontId] = useState<string | null>(null);
-  const [backId, setBackId] = useState<string | null>(null);
+  const [pickedColor, setColor] = useState<string | null>(null);
+  const [pickedSize, setSize] = useState<ShirtSize | null>(null);
+  const [pickedFront, setFrontId] = useState<string | null>(null);
+  const [pickedBack, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [busy, setBusy] = useState(false);
+  const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null); // stays until dismissed
+
+  const { colors, sizes } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
+  // A pick the event no longer offers (colours edited mid-draft) counts as unselected.
+  const color = colors.some((c) => c.key === pickedColor) ? pickedColor : null;
+  const size = sizes.find((s) => s === pickedSize) ?? null;
+
+  // `designs` holds active designs only; a pick that was hidden since counts as unselected.
+  const frontId = designs.some((d) => d.id === pickedFront) ? pickedFront : null;
+  const backId = designs.some((d) => d.id === pickedBack) ? pickedBack : null;
 
   const allowedColors = useMemo(() => {
     const chosen = designs.filter((d) => d.id === frontId || d.id === backId);
@@ -144,23 +203,49 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const submit = async () => {
     if (!canSubmit || !activeEvent) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc('create_order', {
-      p_event_id: activeEvent.id,
-      p_shirt_color: color,
-      p_shirt_size: size,
-      p_design_front_id: frontId,
-      p_design_back_id: backId,
-      p_client_name: clientName,
-      p_created_by: user?.id,
-      p_cashier_key: user?.id,
-      p_cashier_name: user?.name,
+    // One id per draft, reused on every retry; renewed only after success (or an event switch).
+    if (requestId.current?.eventId !== activeEvent.id) {
+      requestId.current = { id: crypto.randomUUID(), eventId: activeEvent.id };
+    }
+    const result = await createOrder({
+      eventId: activeEvent.id,
+      color,
+      size,
+      frontId,
+      backId,
+      clientName,
+      userId: user?.id,
+      userName: user?.name,
+      requestId: requestId.current.id,
     });
     setBusy(false);
-    if (error) {
-      setToast({ msg: `Error: ${error.message}`, tone: 'error' });
+    if (!result.ok) {
+      // Rejected: the server refused, nothing was created. Keep the form either way.
+      setToast({
+        msg: result.kind === 'rejected' ? `Order rejected: ${result.message}` : 'Not confirmed. Tap Send again.',
+        tone: 'error',
+      });
       return;
     }
-    const order = data as Order;
+    const order = result.order;
+    // The server returns the FIRST order for a repeated request id. If the draft was
+    // edited after an unconfirmed send, that order has the old details.
+    const sameDetails =
+      order.shirt_color === color &&
+      order.shirt_size === size &&
+      order.design_front_id === frontId &&
+      order.design_back_id === backId &&
+      order.client_name === (clientName === '' ? null : clientName);
+    if (!sameDetails) {
+      requestId.current = { id: crypto.randomUUID(), eventId: activeEvent.id };
+      setToast(null);
+      setStaleNotice(
+        `Order #${order.event_order_no} was already sent with the earlier details. Cancel it under In progress, then send again.`,
+      );
+      return;
+    }
+    requestId.current = null;
+    setStaleNotice(null);
     setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
     setColor(null);
     setSize(null);
@@ -176,11 +261,11 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
 
       <div>
         <SectionLabel>Shirt color</SectionLabel>
-        <ColorPicker value={color} onChange={setColor} allowed={allowedColors} />
+        <ColorPicker colors={colors} value={color} onChange={setColor} allowed={allowedColors} />
       </div>
       <div>
         <SectionLabel>Size</SectionLabel>
-        <SizePicker value={size} onChange={setSize} />
+        <SizePicker sizes={sizes} value={size} onChange={setSize} />
       </div>
       <div>
         <SectionLabel>Front print</SectionLabel>
@@ -209,6 +294,12 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
         {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
       </button>
       {toast && <Toast message={toast.msg} tone={toast.tone} />}
+      {staleNotice && (
+        <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{staleNotice}</span>
+          <button className="btn btn-text" onClick={() => setStaleNotice(null)}>Dismiss</button>
+        </div>
+      )}
     </section>
   );
 }

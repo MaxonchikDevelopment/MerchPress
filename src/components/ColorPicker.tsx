@@ -1,17 +1,19 @@
-import { SHIRT_COLORS } from '../config';
+import type { EffectiveColor } from '../lib/eventOptions';
 
 export function ColorPicker({
+  colors,
   value,
   onChange,
   allowed,
 }: {
+  colors: EffectiveColor[];
   value: string | null;
   onChange: (key: string) => void;
   allowed?: string[]; // advisory: non-allowed colors are dimmed but still selectable
 }) {
   return (
     <div className="row" role="group" aria-label="Shirt color">
-      {SHIRT_COLORS.map((c) => {
+      {colors.map((c) => {
         const selected = value === c.key;
         const dim = allowed && allowed.length > 0 && !allowed.includes(c.key);
         return (

@@ -4,7 +4,39 @@ const NEW_ORDER_SRC = '/sounds/new-order.wav';
 const READY_SRC = '/sounds/ready.wav';
 
 const audioCache = new Map<string, HTMLAudioElement>();
-let unlocked = false;
+
+// 'locked' until a play() has resolved from a user gesture; 'pending' while that
+// attempt is in flight. Only unlockAudio() (called from taps) moves it.
+type AudioState = 'locked' | 'pending' | 'unlocked';
+let audioState: AudioState = 'locked';
+const listeners = new Set<() => void>();
+
+function setAudioState(next: AudioState) {
+  if (audioState === next) return;
+  audioState = next;
+  listeners.forEach((l) => l());
+}
+
+export const getAudioState = (): AudioState => audioState;
+// True once the user tapped the full-screen gate itself (whether or not the
+// unlock worked). A failed unlock from the login flow does not set it.
+let gateDismissed = false;
+
+export const getGateDismissed = (): boolean => gateDismissed;
+export const isAudioUnlocked = (): boolean => audioState === 'unlocked';
+export function subscribeAudioState(l: () => void): () => void {
+  listeners.add(l);
+  return () => listeners.delete(l);
+}
+
+// The gate's own button: dismisses the gate for good, then tries to unlock.
+export function tapGate(): void {
+  if (!gateDismissed) {
+    gateDismissed = true;
+    listeners.forEach((l) => l());
+  }
+  unlockAudio();
+}
 
 function getAudio(src: string): HTMLAudioElement {
   let a = audioCache.get(src);
@@ -16,31 +48,39 @@ function getAudio(src: string): HTMLAudioElement {
   return a;
 }
 
-// Browsers block audio until a user gesture. Call this once on the first tap
-// (e.g. role select) to "unlock" playback on the tablet.
+// Browsers block audio until a user gesture. Call this from a tap (role select,
+// the "Tap to enable sound" gate) to unlock playback on the tablet. It only
+// counts as unlocked once every play() promise resolves; a failure leaves it
+// locked so a later tap can retry.
 export function unlockAudio(): void {
-  if (unlocked) return;
-  unlocked = true;
-  for (const src of [NEW_ORDER_SRC, READY_SRC]) {
+  if (audioState !== 'locked') return;
+  setAudioState('pending');
+  const attempts = [NEW_ORDER_SRC, READY_SRC].map((src) => {
     const a = getAudio(src);
     a.muted = true;
-    a.play()
+    return a
+      .play()
       .then(() => {
         a.pause();
         a.currentTime = 0;
-        a.muted = false;
       })
-      .catch(() => {
+      .finally(() => {
         a.muted = false;
       });
-  }
+  });
+  Promise.all(attempts).then(
+    () => setAudioState('unlocked'),
+    () => setAudioState('locked'),
+  );
 }
 
 function play(src: string) {
   const a = getAudio(src);
   try {
     a.currentTime = 0;
-    void a.play();
+    a.play().catch(() => {
+      /* blocked or interrupted; nothing to do */
+    });
   } catch {
     /* ignore */
   }

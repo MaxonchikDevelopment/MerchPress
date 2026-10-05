@@ -1,25 +1,17 @@
 import { useMemo, useState } from 'react';
 import { supabase, designPhotoUrl } from '../lib/supabase';
-import { eventOptions } from '../lib/eventOptions';
+import { eventOptions, type EffectiveColor } from '../lib/eventOptions';
+import { errorMessage, removePhotos, uploadDesignPhoto, type UploadStage } from '../lib/imageUpload';
+import { initials } from '../lib/initials';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
-import type { DesignType } from '../types/db';
+import type { Design, DesignType } from '../types/db';
 
-async function uploadPhoto(eventId: string, file: File, side: string): Promise<string> {
-  const ext = file.name.split('.').pop() || 'jpg';
-  const path = `${eventId}/${crypto.randomUUID()}-${side}.${ext}`;
-  const { error } = await supabase.storage.from('designs').upload(path, file, { upsert: false });
-  if (error) throw error;
-  return path;
-}
-
-function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
-}
+const STAGE_LABEL: Record<UploadStage, string> = { preparing: 'Preparing photo…', uploading: 'Uploading…' };
 
 export function AdminDesignsPage() {
   const { activeEvent } = useSession();
@@ -40,6 +32,7 @@ export function AdminDesignsPage() {
   const [colors, setColors] = useState<string[]>([]);
   const [front, setFront] = useState<File | null>(null);
   const [back, setBack] = useState<File | null>(null);
+  const [stage, setStage] = useState<UploadStage | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -53,9 +46,12 @@ export function AdminDesignsPage() {
     if (!eventId || !name.trim()) return;
     setBusy(true);
     setErr(null);
+    const uploaded: string[] = [];
     try {
-      const photo_front = front ? await uploadPhoto(eventId, front, 'front') : null;
-      const photo_back = back ? await uploadPhoto(eventId, back, 'back') : null;
+      let photo_front: string | null = null;
+      let photo_back: string | null = null;
+      if (front) uploaded.push((photo_front = await uploadDesignPhoto(eventId, front, 'front', setStage)));
+      if (back) uploaded.push((photo_back = await uploadDesignPhoto(eventId, back, 'back', setStage)));
       const { error } = await supabase.from('designs').insert({
         event_id: eventId,
         name: name.trim(),
@@ -65,22 +61,19 @@ export function AdminDesignsPage() {
         compatible_colors: colors,
       });
       if (error) throw error;
+      uploaded.length = 0; // now referenced by the row
       setName('');
       setColors([]);
       setFront(null);
       setBack(null);
       await reload();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Upload failed');
+      await removePhotos(uploaded); // don't orphan photos of a design that was not created
+      setErr(errorMessage(e, 'Upload failed'));
     } finally {
       setBusy(false);
+      setStage(null);
     }
-  };
-
-  const remove = async (id: string, dName: string) => {
-    if (!window.confirm(`Delete design "${dName}"? This cannot be undone.`)) return;
-    await supabase.from('designs').delete().eq('id', id);
-    await reload();
   };
 
   return (
@@ -103,27 +96,12 @@ export function AdminDesignsPage() {
 
         <div>
           <SectionLabel>Type</SectionLabel>
-          <div className="row">
-            <button className={type === 'big' ? 'btn btn-primary' : 'btn'} aria-pressed={type === 'big'} onClick={() => setType('big')}>Big</button>
-            <button className={type === 'small' ? 'btn btn-primary' : 'btn'} aria-pressed={type === 'small'} onClick={() => setType('small')}>Small</button>
-          </div>
+          <TypeToggle value={type} onChange={setType} />
         </div>
 
         <div>
           <SectionLabel>Compatible colors</SectionLabel>
-          <div className="row">
-            {shirtColors.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => toggleColor(c.key)}
-                aria-pressed={colors.includes(c.key)}
-                className={colors.includes(c.key) ? 'btn btn-selected' : 'btn'}
-                style={{ background: c.hex, color: c.text, border: '1px solid var(--border-strong)' }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+          <ColorToggles palette={shirtColors} selected={colors} onToggle={toggleColor} />
         </div>
 
         <div>
@@ -136,34 +114,220 @@ export function AdminDesignsPage() {
 
         {err && <div className="toast toast-error">{err}</div>}
         <button className="btn btn-primary" onClick={add} disabled={!eventId || !name.trim() || busy}>
-          {busy ? <><Spinner /> Uploading…</> : 'Add design'}
+          {busy ? <><Spinner /> {stage ? STAGE_LABEL[stage] : 'Saving…'}</> : 'Add design'}
         </button>
       </section>
 
       <section>
         <SectionLabel>Catalog · {designs.length}</SectionLabel>
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-          {designs.map((d) => {
-            const url = designPhotoUrl(d.photo_front) ?? designPhotoUrl(d.photo_back);
-            return (
-              <div key={d.id} className="card grid" style={{ gap: 8 }}>
-                {url ? (
-                  <img src={url} alt={d.name} loading="lazy" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }} />
-                ) : (
-                  <div style={{ height: 140, background: 'var(--surface-raised)', borderRadius: 'var(--r-inner)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    {initials(d.name)}
-                  </div>
-                )}
-                <div style={{ fontWeight: 800 }}>{d.name}</div>
-                <div className="muted" style={{ fontSize: 13 }}>{d.type} · {d.compatible_colors.join(', ') || 'any'}</div>
-                <button className="btn-text" style={{ alignSelf: 'start' }} onClick={() => remove(d.id, d.name)}>Delete</button>
-              </div>
-            );
-          })}
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+          {designs.map((d) => (
+            <DesignCard key={d.id} design={d} palette={shirtColors} onChanged={reload} />
+          ))}
           {designs.length === 0 && <EmptyState>No designs for this event yet.</EmptyState>}
         </div>
       </section>
     </div>
+  );
+}
+
+function TypeToggle({ value, onChange }: { value: DesignType; onChange: (t: DesignType) => void }) {
+  return (
+    <div className="row">
+      <button className={value === 'big' ? 'btn btn-primary' : 'btn'} aria-pressed={value === 'big'} onClick={() => onChange('big')}>Big</button>
+      <button className={value === 'small' ? 'btn btn-primary' : 'btn'} aria-pressed={value === 'small'} onClick={() => onChange('small')}>Small</button>
+    </div>
+  );
+}
+
+// Colour chips for the event palette, plus any stored key the palette no longer has,
+// so editing a design never silently drops one.
+function ColorToggles({
+  palette,
+  selected,
+  onToggle,
+}: {
+  palette: EffectiveColor[];
+  selected: string[];
+  onToggle: (key: string) => void;
+}) {
+  const orphans = selected.filter((k) => !palette.some((c) => c.key === k));
+  return (
+    <div className="row">
+      {palette.map((c) => (
+        <button
+          key={c.key}
+          onClick={() => onToggle(c.key)}
+          aria-pressed={selected.includes(c.key)}
+          className={selected.includes(c.key) ? 'btn btn-selected' : 'btn'}
+          style={{ background: c.hex, color: c.text, border: '1px solid var(--border-strong)' }}
+        >
+          {c.label}
+        </button>
+      ))}
+      {orphans.map((k) => (
+        <button key={k} onClick={() => onToggle(k)} aria-pressed className="btn btn-selected" title="Not in this event's colours">
+          {k}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DesignCard({
+  design: d,
+  palette,
+  onChanged,
+}: {
+  design: Design;
+  palette: EffectiveColor[];
+  onChanged: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(d.name);
+  const [type, setType] = useState<DesignType>(d.type);
+  const [colors, setColors] = useState<string[]>(d.compatible_colors);
+  const [working, setWorking] = useState<string | null>(null); // label of the running action
+  const [err, setErr] = useState<string | null>(null);
+
+  const url = designPhotoUrl(d.photo_front) ?? designPhotoUrl(d.photo_back);
+
+  const run = async (label: string, fn: () => Promise<void>) => {
+    if (working) return;
+    setWorking(label);
+    setErr(null);
+    try {
+      await fn();
+    } catch (e) {
+      setErr(errorMessage(e, 'Something went wrong. Try again.'));
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const startEdit = () => {
+    setName(d.name);
+    setType(d.type);
+    setColors(d.compatible_colors);
+    setErr(null);
+    setEditing(true);
+  };
+
+  const saveEdit = () =>
+    run('Saving…', async () => {
+      if (!name.trim()) throw new Error('Enter a design name.');
+      const { error } = await supabase
+        .from('designs')
+        .update({ name: name.trim(), type, compatible_colors: colors })
+        .eq('id', d.id);
+      if (error) throw error;
+      setEditing(false);
+      await onChanged();
+    });
+
+  const toggleActive = () =>
+    run(d.is_active ? 'Hiding…' : 'Showing…', async () => {
+      const { error } = await supabase.from('designs').update({ is_active: !d.is_active }).eq('id', d.id);
+      if (error) throw error;
+      await onChanged();
+    });
+
+  // Upload the new photo, point the row at it, then delete the old object.
+  const replacePhoto = (side: 'front' | 'back', file: File) => {
+    const col = side === 'front' ? 'photo_front' : 'photo_back';
+    return run('Preparing photo…', async () => {
+      const path = await uploadDesignPhoto(d.event_id, file, side, (s) => setWorking(STAGE_LABEL[s]));
+      const { error } = await supabase.from('designs').update({ [col]: path }).eq('id', d.id);
+      if (error) {
+        await removePhotos([path]);
+        throw error;
+      }
+      await removePhotos([d[col]]); // failure is only logged
+      await onChanged();
+    });
+  };
+
+  const remove = () => {
+    if (!window.confirm(`Delete design "${d.name}"? This cannot be undone.`)) return;
+    return run('Deleting…', async () => {
+      const { error } = await supabase.from('designs').delete().eq('id', d.id);
+      if (error) {
+        // 23503: foreign key violation, an order still points at this design.
+        throw new Error(error.code === '23503' ? 'This design is used by orders. Hide it instead.' : error.message);
+      }
+      await removePhotos([d.photo_front, d.photo_back]); // only after the row is gone
+      await onChanged();
+    });
+  };
+
+  return (
+    <div className="card grid" style={{ gap: 8, opacity: d.is_active ? 1 : 0.6 }}>
+      {url ? (
+        <img src={url} alt={d.name} loading="lazy" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }} />
+      ) : (
+        <div style={{ height: 140, background: 'var(--surface-raised)', borderRadius: 'var(--r-inner)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'var(--text-secondary)' }}>
+          {initials(d.name)}
+        </div>
+      )}
+
+      {editing ? (
+        <>
+          <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Design name" style={{ width: '100%' }} />
+          <TypeToggle value={type} onChange={setType} />
+          <ColorToggles
+            palette={palette}
+            selected={colors}
+            onToggle={(k) => setColors((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]))}
+          />
+          <div className="row">
+            <button className="btn btn-primary" onClick={saveEdit} disabled={!!working}>
+              {working === 'Saving…' ? <><Spinner /> Saving…</> : 'Save'}
+            </button>
+            <button className="btn" onClick={() => setEditing(false)} disabled={!!working}>Cancel</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontWeight: 800 }}>
+            {d.name}
+            {!d.is_active && <span className="badge" style={{ marginLeft: 8 }}>Hidden</span>}
+          </div>
+          <div className="muted" style={{ fontSize: 13 }}>
+            {d.type} · {d.compatible_colors.map((k) => palette.find((c) => c.key === k)?.label ?? k).join(', ') || 'any'}
+          </div>
+          <div className="row">
+            <PhotoReplace label="Replace front" disabled={!!working} onPick={(f) => replacePhoto('front', f)} />
+            <PhotoReplace label="Replace back" disabled={!!working} onPick={(f) => replacePhoto('back', f)} />
+          </div>
+          <div className="row">
+            <button className="btn" onClick={startEdit} disabled={!!working}>Edit</button>
+            <button className="btn" onClick={toggleActive} disabled={!!working}>{d.is_active ? 'Hide' : 'Show'}</button>
+            <button className="btn-text" onClick={remove} disabled={!!working}>Delete</button>
+          </div>
+        </>
+      )}
+      {working && !editing && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
+      {err && <div className="toast toast-error" role="alert">{err}</div>}
+    </div>
+  );
+}
+
+function PhotoReplace({ label, disabled, onPick }: { label: string; disabled: boolean; onPick: (f: File) => void }) {
+  return (
+    <label className="btn-text" style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1 }}>
+      {label}
+      <input
+        type="file"
+        accept="image/*"
+        hidden
+        disabled={disabled}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = ''; // allow picking the same file again
+          if (f) onPick(f);
+        }}
+      />
+    </label>
   );
 }
 

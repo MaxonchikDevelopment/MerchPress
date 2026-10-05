@@ -23,7 +23,7 @@ import type { Order, ShirtSize } from '../types/db';
 export function CashierPage() {
   const { user, activeEvent } = useSession();
   const eventId = activeEvent?.id ?? null;
-  const { designs } = useDesigns(eventId);
+  const { designs, activeDesigns } = useDesigns(eventId);
 
   // Dedupe ready alerts across refresh/reconnect (per cashier+event).
   const userId = user?.id;
@@ -126,7 +126,7 @@ export function CashierPage() {
       <OfflineBanner connected={connected} />
       <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">
-          <NewOrderForm designs={designs} />
+          <NewOrderForm designs={activeDesigns} />
 
           <section>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
@@ -172,8 +172,8 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const { user, activeEvent } = useSession();
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<ShirtSize | null>(null);
-  const [frontId, setFrontId] = useState<string | null>(null);
-  const [backId, setBackId] = useState<string | null>(null);
+  const [pickedFront, setFrontId] = useState<string | null>(null);
+  const [pickedBack, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [busy, setBusy] = useState(false);
   const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
@@ -184,6 +184,10 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   // A pick the event no longer offers (colours edited mid-draft) counts as unselected.
   const color = colors.some((c) => c.key === pickedColor) ? pickedColor : null;
   const size = sizes.find((s) => s === pickedSize) ?? null;
+
+  // `designs` holds active designs only; a pick that was hidden since counts as unselected.
+  const frontId = designs.some((d) => d.id === pickedFront) ? pickedFront : null;
+  const backId = designs.some((d) => d.id === pickedBack) ? pickedBack : null;
 
   const allowedColors = useMemo(() => {
     const chosen = designs.filter((d) => d.id === frontId || d.id === backId);

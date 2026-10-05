@@ -5,6 +5,7 @@ import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
+import { useCancelOrder } from '../hooks/useCancelOrder';
 import { OrderCard } from '../components/OrderCard';
 import { TopBar, OfflineBanner } from '../components/TopBar';
 import { SoundGate } from '../components/SoundGate';
@@ -46,7 +47,14 @@ export function PressPage() {
     [seenNew],
   );
 
-  const { orders, connected } = useOrders(eventId, { onNew, onLoaded });
+  const { orders, connected, reload } = useOrders(eventId, { onNew, onLoaded });
+
+  const showError = useCallback((message: string) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+  const { askCancel, dialog: cancelDialog } = useCancelOrder(user?.id, showError, () => void reload());
 
   const queue = useMemo(
     () =>
@@ -62,11 +70,7 @@ export function PressPage() {
     setBusyIds((b) => [...b, id]);
     const ok = await setOrderStatus(id, status, user?.id);
     setBusyIds((b) => b.filter((x) => x !== id));
-    if (!ok) {
-      setToast(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
-      clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 5000);
-    }
+    if (!ok) showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
   };
 
   if (!activeEvent) {
@@ -110,6 +114,7 @@ export function PressPage() {
                     {busy ? <><Spinner /> …</> : '✓ Ready'}
                   </button>
                 )}
+                <button className="btn btn-text" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
               </OrderCard>
             );
           })}
@@ -117,6 +122,7 @@ export function PressPage() {
         </div>
       </div>
       <SoundGate />
+      {cancelDialog}
     </div>
   );
 }

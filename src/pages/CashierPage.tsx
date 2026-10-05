@@ -5,6 +5,7 @@ import { alertReady, SeenSet } from '../lib/notify';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
+import { useCancelOrder } from '../hooks/useCancelOrder';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
 import { DesignPicker } from '../components/DesignPicker';
@@ -68,7 +69,23 @@ export function CashierPage() {
     [userId, seenReady],
   );
 
-  const { orders, connected } = useOrders(eventId, { onReady, onLoaded });
+  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded });
+
+  const showError = useCallback((message: string) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+  const { askCancel, dialog: cancelDialog } = useCancelOrder(userId, showError, () => void reload());
+
+  // This cashier's own orders still waiting for or being worked by press.
+  const myOpenOrders = useMemo(
+    () =>
+      orders
+        .filter((o) => (o.status === 'new' || o.status === 'in_progress') && o.created_by === userId)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at)), // FIFO
+    [orders, userId],
+  );
 
   const readyOrders = useMemo(
     () =>
@@ -90,11 +107,7 @@ export function CashierPage() {
     setCompleting((c) => [...c, id]);
     const ok = await setOrderStatus(id, 'completed', user?.id);
     setCompleting((c) => c.filter((x) => x !== id));
-    if (!ok) {
-      setToast(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
-      clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 5000);
-    }
+    if (!ok) showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
   };
 
   if (!activeEvent) {
@@ -116,6 +129,15 @@ export function CashierPage() {
 
           <section>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
+            <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
+            <div className="grid" style={{ gridTemplateColumns: '1fr', marginBottom: 'var(--sp-5)' }}>
+              {myOpenOrders.map((o) => (
+                <OrderCard key={o.id} order={o} designs={designs}>
+                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
+                </OrderCard>
+              ))}
+              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
+            </div>
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
               {readyOrders.map((o) => (
@@ -127,6 +149,7 @@ export function CashierPage() {
                   >
                     {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
                   </button>
+                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {readyOrders.length === 0 && <EmptyState>Nothing ready yet.</EmptyState>}
@@ -136,6 +159,7 @@ export function CashierPage() {
       </div>
 
       <SoundGate />
+      {cancelDialog}
       {overlay && (
         <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => setOverlay(null)} />
       )}

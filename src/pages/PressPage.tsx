@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { alertNewOrder, SeenSet } from '../lib/notify';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
-import { useOrders } from '../hooks/useOrders';
+import { useOrders, type LoadKind } from '../hooks/useOrders';
 import { OrderCard } from '../components/OrderCard';
 import { TopBar, OfflineBanner } from '../components/TopBar';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -16,7 +16,7 @@ export function PressPage() {
   const eventId = activeEvent?.id ?? null;
   const { designs } = useDesigns(eventId);
 
-  const seenNew = useRef(new SeenSet(`mpq.seenNew.${eventId}`));
+  const seenNew = useMemo(() => new SeenSet(`mpq.seenNew.${eventId}`), [eventId]);
   const [busyIds, setBusyIds] = useState<string[]>([]);
   // Tick so overdue edge/pulse escalates over time (visual only; never re-sorts).
   const [, setTick] = useState(0);
@@ -25,13 +25,22 @@ export function PressPage() {
     return () => clearInterval(t);
   }, []);
 
-  const onNew = useCallback((order: Order) => {
-    if (seenNew.current.markIfNew(order.id)) alertNewOrder();
-  }, []);
+  const onNew = useCallback(
+    (order: Order) => {
+      if (seenNew.markIfNew(order.id)) alertNewOrder();
+    },
+    [seenNew],
+  );
 
-  const onLoaded = useCallback((list: Order[]) => {
-    seenNew.current.seed(list.map((o) => o.id)); // don't alert for orders already loaded
-  }, []);
+  const onLoaded = useCallback(
+    (list: Order[], kind: LoadKind) => {
+      // Refetch after a gap: one sound for the batch if any 'new' order was missed.
+      const missed = kind === 'refetch' && list.some((o) => o.status === 'new' && !seenNew.has(o.id));
+      seenNew.seed(list.map((o) => o.id)); // initial load seeds silently
+      if (missed) alertNewOrder();
+    },
+    [seenNew],
+  );
 
   const { orders, connected } = useOrders(eventId, { onNew, onLoaded });
 

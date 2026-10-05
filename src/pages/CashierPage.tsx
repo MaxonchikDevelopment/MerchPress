@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { alertReady, SeenSet } from '../lib/notify';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
-import { useOrders } from '../hooks/useOrders';
+import { useOrders, type LoadKind } from '../hooks/useOrders';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
 import { DesignPicker } from '../components/DesignPicker';
@@ -22,31 +22,46 @@ export function CashierPage() {
   const { designs } = useDesigns(eventId);
 
   // Dedupe ready alerts across refresh/reconnect (per cashier+event).
-  const seenReady = useRef(new SeenSet(`mpq.seenReady.${user?.id}.${eventId}`));
+  const userId = user?.id;
+  const seenReady = useMemo(() => new SeenSet(`mpq.seenReady.${userId}.${eventId}`), [userId, eventId]);
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
   const [completing, setCompleting] = useState<string[]>([]);
 
   const onReady = useCallback(
     (order: Order) => {
-      if (order.created_by !== user?.id) return; // only my own orders sound
-      if (!seenReady.current.markIfNew(order.id)) return; // already alerted
+      if (order.created_by !== userId) return; // only my own orders sound
+      if (!seenReady.markIfNew(order.id)) return; // already alerted
       alertReady();
       setOverlay({
         title: `Order #${order.event_order_no} ready`,
         subtitle: order.client_name ?? undefined,
       });
     },
-    [user?.id],
+    [userId, seenReady],
   );
 
   const onLoaded = useCallback(
-    (list: Order[]) => {
-      // Seed dedupe with orders already ready for me so a refresh won't re-alert.
-      seenReady.current.seed(
-        list.filter((o) => o.status === 'ready' && o.created_by === user?.id).map((o) => o.id),
+    (list: Order[], kind: LoadKind) => {
+      const mine = list.filter((o) => o.status === 'ready' && o.created_by === userId);
+      if (kind === 'initial') {
+        // Seed dedupe with orders already ready for me so a refresh won't re-alert.
+        seenReady.seed(mine.map((o) => o.id));
+        return;
+      }
+      // Refetch after a gap: one alert for the batch of my orders that went ready unseen.
+      const missed = mine.filter((o) => seenReady.markIfNew(o.id));
+      if (missed.length === 0) return;
+      alertReady();
+      setOverlay(
+        missed.length === 1
+          ? {
+              title: `Order #${missed[0].event_order_no} ready`,
+              subtitle: missed[0].client_name ?? undefined,
+            }
+          : { title: `Orders ${missed.map((o) => `#${o.event_order_no}`).join(', ')} ready` },
       );
     },
-    [user?.id],
+    [userId, seenReady],
   );
 
   const { orders, connected } = useOrders(eventId, { onReady, onLoaded });

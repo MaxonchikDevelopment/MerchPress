@@ -10,6 +10,9 @@ export interface OrderChannelHandlers {
   onDelete: (id: string) => void;
   // Fired when the socket (re)subscribes after an error/timeout — caller refetches.
   onResubscribe: () => void;
+  // Raw channel status (SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED) so the
+  // caller can report a real connection state.
+  onStatus?: (status: string) => void;
 }
 
 // Subscribe to all order changes for one event. Realtime only keeps an
@@ -36,6 +39,7 @@ export function subscribeOrders(eventId: string, h: OrderChannelHandlers): Realt
       },
     )
     .subscribe((status) => {
+      h.onStatus?.(status);
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         hadError = true;
       } else if (status === 'SUBSCRIBED' && hadError) {

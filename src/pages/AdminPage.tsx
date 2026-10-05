@@ -7,6 +7,8 @@ import { StatsPage } from './StatsPage';
 
 type Tab = 'events' | 'designs' | 'staff' | 'stats';
 
+const TAB_LABELS: Record<Tab, string> = { events: 'Events', designs: 'Designs', staff: 'Staff', stats: 'Stats' };
+
 export function AdminPage() {
   const [tab, setTab] = useState<Tab>('designs');
 
@@ -20,7 +22,7 @@ export function AdminPage() {
             onClick={() => setTab(t)}
             aria-current={tab === t ? 'page' : undefined}
           >
-            {t}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </TopBar>

@@ -26,11 +26,3 @@ export function setLastUser(user: Staff): void {
     /* storage disabled — shortcut just won't appear */
   }
 }
-
-export function clearLastUser(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
-}

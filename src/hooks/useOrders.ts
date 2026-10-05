@@ -25,7 +25,6 @@ const POLL_MS = 20_000;
 // while the tab is visible.
 export function useOrders(eventId: string | null, opts: Options = {}) {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [fetchOk, setFetchOk] = useState(true);
@@ -47,7 +46,6 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
   const reload = useCallback(async () => {
     if (!eventId) {
       setOrders([]);
-      setLoading(false);
       return;
     }
     const seq = ++reqSeq.current;
@@ -72,7 +70,6 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
     const kind: LoadKind = hasLoaded.current ? 'refetch' : 'initial';
     hasLoaded.current = true;
     setOrders(list);
-    setLoading(false);
     setFetchOk(true);
     cb.current.onLoaded?.(list, kind);
   }, [eventId]);
@@ -82,7 +79,6 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
     if (!eventId) return;
     hasLoaded.current = false;
     appliedSeq.current = reqSeq.current; // anything in flight for the old event is stale
-    setLoading(true);
     setOrders([]);
     setFetchOk(true);
     void reload();
@@ -144,5 +140,5 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
   // Real connection state: socket subscribed, browser online, last query ok.
   const connected = subscribed && online && fetchOk;
 
-  return { orders, loading, connected, reload };
+  return { orders, connected, reload };
 }

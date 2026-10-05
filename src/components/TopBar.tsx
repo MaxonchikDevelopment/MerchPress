@@ -26,7 +26,7 @@ export function TopBar({
             <span aria-hidden="true">👤</span> {user.name}
           </span>
         )}
-        <button className="btn" onClick={logout} aria-label="Sign out">Exit</button>
+        <button className="btn" onClick={logout} >Sign out</button>
       </div>
     </header>
   );

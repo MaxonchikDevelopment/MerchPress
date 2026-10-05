@@ -4,16 +4,13 @@ import type { EventRow } from '../types/db';
 
 export function useEvents() {
   const [events, setEvents] = useState<EventRow[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    setLoading(true);
     const { data } = await supabase
       .from('events')
       .select('*')
       .order('created_at', { ascending: false });
     setEvents((data as EventRow[]) ?? []);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -53,5 +50,5 @@ export function useEvents() {
     [reload],
   );
 
-  return { events, loading, reload, createEvent, updateEvent, activateEvent };
+  return { events, reload, createEvent, updateEvent, activateEvent };
 }

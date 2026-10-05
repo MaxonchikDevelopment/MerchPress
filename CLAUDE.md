@@ -39,9 +39,9 @@ Generated from `supabase/migrations` (0001-0004).
 - `order_status`: new, in_progress, ready, completed, cancelled (added in [0003_enums.sql](supabase/migrations/0003_enums.sql))
 
 ### Tables
-- `events` ([0001_init.sql:11-18](supabase/migrations/0001_init.sql#L11-L18)); unique partial index allows one active event ([:20](supabase/migrations/0001_init.sql#L20)); 0004 adds `shirt_colors jsonb` and `shirt_sizes text[]` (null = app defaults, not read by the client yet)
+- `events` ([0001_init.sql:11-18](supabase/migrations/0001_init.sql#L11-L18)); unique partial index allows one active event ([:20](supabase/migrations/0001_init.sql#L20)); 0004 adds `shirt_colors jsonb` (array of `{ key, label, hex }`) and `shirt_sizes text[]` (subset of XS-XXL); null or empty = app defaults from `config.ts`, resolved by `src/lib/eventOptions.ts`
 - `users` ([0001_init.sql:22-28](supabase/migrations/0001_init.sql#L22-L28)); `pin` nullable text; RLS enabled with no policies since 0004, so anon cannot select, insert, update or delete it
-- `designs` ([0001_init.sql:30-40](supabase/migrations/0001_init.sql#L30-L40)); `compatible_colors text[]`, cascade on event delete; 0004 adds `is_active boolean not null default true` (not used by the client yet)
+- `designs` ([0001_init.sql:30-40](supabase/migrations/0001_init.sql#L30-L40)); `compatible_colors text[]`, cascade on event delete; 0004 adds `is_active boolean not null default true` (Hide / Show in Admin Designs; cashier pickers list active designs only; orders still resolve hidden ones). Deleting a design that orders use fails with 23503
 - `orders` ([0001_init.sql:42-63](supabase/migrations/0001_init.sql#L42-L63)); `unique (event_id, event_order_no)`, queue index on `(event_id, status, created_at)`; 0004 adds `cancelled_at`, `cancelled_by` (fk users) and `client_request_id uuid` with a unique partial index
 
 ### RPCs (all `security definer`, `search_path = public`)

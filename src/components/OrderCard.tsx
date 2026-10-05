@@ -1,19 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { designPhotoUrl } from '../lib/supabase';
+import { initials } from '../lib/initials';
 import { useSession } from '../context/SessionContext';
 import { eventOptions } from '../lib/eventOptions';
 import type { Design, Order } from '../types/db';
 import { StatusBadge } from './StatusBadge';
 import { WaitTimer } from './WaitTimer';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
 
 // Design thumbnail with graceful fallback: shows the print photo, or the
 // design's initials on a muted tile when the photo is missing or fails to load.

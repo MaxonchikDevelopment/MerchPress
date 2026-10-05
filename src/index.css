@@ -70,14 +70,6 @@
   --touch-min: 56px;
   --touch-lg: 72px;
 
-  /* Legacy aliases kept so any un-migrated reference still resolves. */
-  --bg: var(--surface-page);
-  --panel: var(--surface-card);
-  --panel-2: var(--surface-raised);
-  --border: var(--border-subtle);
-  --text: var(--text-primary);
-  --muted: var(--text-muted);
-
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
 }

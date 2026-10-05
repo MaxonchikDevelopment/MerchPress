@@ -90,6 +90,20 @@ try {
   const all = must(await sb.from('orders').select('id').eq('event_id', eventId), 'count in event');
   check('exactly one order in the event so far', all.length === 1, `found ${all.length}`);
 
+  // same request id, different size: the first order comes back unchanged
+  const c = must(
+    await sb.rpc('create_order_v2', {
+      p_event_id: eventId, p_shirt_color: 'black', p_shirt_size: 'XL',
+      p_design_front_id: null, p_design_back_id: null, p_client_name: 'r2-idem',
+      p_created_by: null, p_cashier_key: 'r2-test', p_cashier_name: 'r2-test',
+      p_client_request_id: reqId,
+    }),
+    'create_order_v2 #3 (changed size)',
+  );
+  check('same request id, different size: first order unchanged', c.id === a.id && c.shirt_size === 'M', `size ${c.shirt_size}`);
+  const all2 = must(await sb.from('orders').select('id').eq('event_id', eventId), 'count after changed resend');
+  check('changed resend created no extra order', all2.length === 1, `found ${all2.length}`);
+
   // ---- cancel from new / in_progress / ready ----
   for (const from of ['new', 'in_progress', 'ready']) {
     const o = must(await createV2(randomUUID(), `r2-cancel-${from}`), `create (${from})`);

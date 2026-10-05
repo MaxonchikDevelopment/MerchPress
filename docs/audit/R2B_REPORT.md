@@ -31,7 +31,7 @@ Commit 4: stats, docs, test
 - The view's `total_orders` still counts cancelled orders (R2A open question 4), so the client subtracts `count_cancelled`.
 - The Staff tab disables deactivating yourself and changing your own role, to avoid locking yourself out of the tab. The server still enforces `last_admin`.
 - The CSV column header is the literal `cancelled_at`; the other headers are the existing human labels.
-- The idempotency id is tied to the draft and the event, not to field contents. If a send fails, the cashier edits the form and sends again, and the first call had actually landed, the server returns the first order (old contents) and the form clears. Rare; see deferred.
+- The idempotency id is tied to the draft and the event, not to field contents. If a send fails, the cashier edits the form and sends again, and the first call had actually landed, the server returns the first order (old contents) and the form clears. Fixed in the follow-up below.
 
 ## Validation
 `npx tsc -b`, `npm run lint`, `npm run build` clean at each commit. `grep "Dev login"` in `dist/assets` = 0. `service_role` grep in `src` empty.
@@ -41,9 +41,11 @@ Commit 4: stats, docs, test
 `MP_ADMIN_ID=<uuid> MP_ADMIN_PIN=<pin> node scripts/r2-livetest.mjs`
 They create or reuse "ZZ-R2-STAFF", rename it, set its PIN and deactivate it. There is no delete RPC, so the row stays; the script prints its id and `delete from users where id = '<id>';` for the owner to run.
 
+## Follow-up: edited draft after an unconfirmed send (done)
+CashierPage compares the order returned by `create_order_v2` with the draft (color, size, front, back, client name with empty to null, as the server does). On a mismatch it does not show success and does not clear the form. It shows an error that stays until dismissed ("Order #N was already sent with the earlier details. Cancel it under In progress, then send again.") and generates a new request id, so the next send creates a fresh order. Live test gained: same request id with a different size returns the first order unchanged.
+
 ## Deferred
 - Per-event colors and sizes, design hide/edit, image compression (and the 5 MB / jpeg-png-webp bucket limit vs. phone photos): next round.
-- Edge above: editing a draft after a landed-but-unconfirmed send.
 - Cancel needs a connection; there is no offline queue.
 - Existing admins with PIN `0000` still work until their PIN is changed (use the Staff tab).
 - The cached admin PIN is lost on reload and in every new tab by design.
@@ -73,3 +75,4 @@ They create or reuse "ZZ-R2-STAFF", rename it, set its PIN and deactivate it. Th
 | 20 | Stats: Cancelled KPI correct; Total orders excludes cancelled; breakdowns exclude cancelled | |
 | 21 | Stats: CSV contains cancelled orders with status `cancelled` and a `cancelled_at` value | |
 | 22 | `MP_ADMIN_ID=… MP_ADMIN_PIN=… node scripts/r2-livetest.mjs`: all PASS, owner deletes the ZZ-R2-STAFF row | |
+| 18 | Cashier: send with Wi-Fi off, edit the size, restore Wi-Fi, tap Send. If the first send had landed: persistent error naming the order, form kept, Dismiss works; after cancelling that order and sending again, a new order is created | |

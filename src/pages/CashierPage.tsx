@@ -177,6 +177,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const [busy, setBusy] = useState(false);
   const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null); // stays until dismissed
 
   const allowedColors = useMemo(() => {
     const chosen = designs.filter((d) => d.id === frontId || d.id === backId);
@@ -212,7 +213,24 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
       setToast({ msg: 'Not confirmed. Tap Send again.', tone: 'error' });
       return;
     }
+    // The server returns the FIRST order for a repeated request id. If the draft was
+    // edited after an unconfirmed send, that order has the old details.
+    const sameDetails =
+      order.shirt_color === color &&
+      order.shirt_size === size &&
+      order.design_front_id === frontId &&
+      order.design_back_id === backId &&
+      order.client_name === (clientName === '' ? null : clientName);
+    if (!sameDetails) {
+      requestId.current = { id: crypto.randomUUID(), eventId: activeEvent.id };
+      setToast(null);
+      setStaleNotice(
+        `Order #${order.event_order_no} was already sent with the earlier details. Cancel it under In progress, then send again.`,
+      );
+      return;
+    }
     requestId.current = null;
+    setStaleNotice(null);
     setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
     setColor(null);
     setSize(null);
@@ -261,6 +279,12 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
         {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
       </button>
       {toast && <Toast message={toast.msg} tone={toast.tone} />}
+      {staleNotice && (
+        <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{staleNotice}</span>
+          <button className="btn btn-text" onClick={() => setStaleNotice(null)}>Dismiss</button>
+        </div>
+      )}
     </section>
   );
 }

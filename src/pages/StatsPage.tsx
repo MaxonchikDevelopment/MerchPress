@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { toCsv, downloadCsv } from '../lib/csv';
-import { colorLabel } from '../config';
+import { eventOptions } from '../lib/eventOptions';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -30,6 +30,10 @@ export function StatsPage() {
   const setEventId = setPickedId;
 
   const { designs } = useDesigns(eventId);
+  const { colorLabel } = useMemo(
+    () => eventOptions(events.find((e) => e.id === eventId)),
+    [events, eventId],
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
 
@@ -63,7 +67,7 @@ export function StatsPage() {
   }, [liveOrders, designs]);
 
   const bySize = useMemo(() => tally(liveOrders.map((o) => o.shirt_size)), [liveOrders]);
-  const byColor = useMemo(() => tally(liveOrders.map((o) => colorLabel(o.shirt_color))), [liveOrders]);
+  const byColor = useMemo(() => tally(liveOrders.map((o) => colorLabel(o.shirt_color))), [liveOrders, colorLabel]);
 
   const exportCsv = () => {
     const rows = orders.map((o) => ({

@@ -13,8 +13,8 @@ export interface EventRow {
   event_date: string | null;
   is_active: boolean;
   created_at: string;
-  shirt_colors: unknown | null; // jsonb; null = app defaults (not used yet)
-  shirt_sizes: string[] | null; // null = app defaults (not used yet)
+  shirt_colors: unknown | null; // jsonb [{ key, label, hex }]; null = app defaults
+  shirt_sizes: string[] | null; // subset of XS..XXL; null = app defaults
 }
 
 export interface Staff {

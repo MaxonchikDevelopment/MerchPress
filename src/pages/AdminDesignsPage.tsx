@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { supabase, designPhotoUrl } from '../lib/supabase';
-import { SHIRT_COLORS } from '../config';
+import { eventOptions } from '../lib/eventOptions';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -30,6 +30,10 @@ export function AdminDesignsPage() {
   const setEventId = setPickedId;
 
   const { designs, reload } = useDesigns(eventId);
+  const { colors: shirtColors } = useMemo(
+    () => eventOptions(events.find((e) => e.id === eventId)),
+    [events, eventId],
+  );
 
   const [name, setName] = useState('');
   const [type, setType] = useState<DesignType>('big');
@@ -108,7 +112,7 @@ export function AdminDesignsPage() {
         <div>
           <SectionLabel>Compatible colors</SectionLabel>
           <div className="row">
-            {SHIRT_COLORS.map((c) => (
+            {shirtColors.map((c) => (
               <button
                 key={c.key}
                 onClick={() => toggleColor(c.key)}

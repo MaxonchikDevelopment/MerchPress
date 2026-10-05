@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
@@ -169,8 +170,8 @@ export function CashierPage() {
 
 function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['designs'] }) {
   const { user, activeEvent } = useSession();
-  const [color, setColor] = useState<string | null>(null);
-  const [size, setSize] = useState<ShirtSize | null>(null);
+  const [pickedColor, setColor] = useState<string | null>(null);
+  const [pickedSize, setSize] = useState<ShirtSize | null>(null);
   const [frontId, setFrontId] = useState<string | null>(null);
   const [backId, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
@@ -178,6 +179,11 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
   const [staleNotice, setStaleNotice] = useState<string | null>(null); // stays until dismissed
+
+  const { colors, sizes } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
+  // A pick the event no longer offers (colours edited mid-draft) counts as unselected.
+  const color = colors.some((c) => c.key === pickedColor) ? pickedColor : null;
+  const size = sizes.find((s) => s === pickedSize) ?? null;
 
   const allowedColors = useMemo(() => {
     const chosen = designs.filter((d) => d.id === frontId || d.id === backId);
@@ -246,11 +252,11 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
 
       <div>
         <SectionLabel>Shirt color</SectionLabel>
-        <ColorPicker value={color} onChange={setColor} allowed={allowedColors} />
+        <ColorPicker colors={colors} value={color} onChange={setColor} allowed={allowedColors} />
       </div>
       <div>
         <SectionLabel>Size</SectionLabel>
-        <SizePicker value={size} onChange={setSize} />
+        <SizePicker sizes={sizes} value={size} onChange={setSize} />
       </div>
       <div>
         <SectionLabel>Front print</SectionLabel>

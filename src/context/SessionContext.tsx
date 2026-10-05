@@ -22,6 +22,8 @@ interface SessionState {
   login: (user: Staff) => void;
   logout: () => void;
   reloadActiveEvent: () => Promise<void>;
+  // Same fetch without the full-screen loading state, for use while a page is open.
+  refreshActiveEvent: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -63,6 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reloadActiveEvent = useCallback(() => fetchActiveEvent(false), [fetchActiveEvent]);
+  const refreshActiveEvent = useCallback(() => fetchActiveEvent(true), [fetchActiveEvent]);
 
   useEffect(() => {
     void reloadActiveEvent();
@@ -97,8 +100,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SessionState>(
-    () => ({ user, activeEvent, loadingEvent, login, logout, reloadActiveEvent }),
-    [user, activeEvent, loadingEvent, login, logout, reloadActiveEvent],
+    () => ({ user, activeEvent, loadingEvent, login, logout, reloadActiveEvent, refreshActiveEvent }),
+    [user, activeEvent, loadingEvent, login, logout, reloadActiveEvent, refreshActiveEvent],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { designPhotoUrl } from '../lib/supabase';
-import { colorLabel } from '../config';
+import { useSession } from '../context/SessionContext';
+import { eventOptions } from '../lib/eventOptions';
 import type { Design, Order } from '../types/db';
 import { StatusBadge } from './StatusBadge';
 import { WaitTimer } from './WaitTimer';
@@ -75,6 +76,9 @@ export function OrderCard({
   alert?: boolean; // pulse to escalate (overdue)
   children?: ReactNode;
 }) {
+  // Press and Cashier only list orders of the active event.
+  const { activeEvent } = useSession();
+  const { colorLabel } = eventOptions(activeEvent);
   const front = designs.find((d) => d.id === order.design_front_id);
   const back = designs.find((d) => d.id === order.design_back_id);
 

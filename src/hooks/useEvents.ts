@@ -32,6 +32,16 @@ export function useEvents() {
     [reload],
   );
 
+  // Direct update of an event row. Returns an error message, or null on success.
+  const updateEvent = useCallback(
+    async (id: string, patch: Partial<Omit<EventRow, 'id' | 'created_at' | 'is_active'>>): Promise<string | null> => {
+      const { error } = await supabase.from('events').update(patch).eq('id', id);
+      await reload();
+      return error ? `Couldn't save the event: ${error.message}` : null;
+    },
+    [reload],
+  );
+
   // Make exactly one event active, atomically, through activate_event.
   // Returns an error message, or null on success.
   const activateEvent = useCallback(
@@ -43,5 +53,5 @@ export function useEvents() {
     [reload],
   );
 
-  return { events, loading, reload, createEvent, activateEvent };
+  return { events, loading, reload, createEvent, updateEvent, activateEvent };
 }

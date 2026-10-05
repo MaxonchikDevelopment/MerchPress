@@ -32,11 +32,14 @@ Commit 3, PWA config, thresholds, placeholders, test script (2i-2k)
 ## Live test: NOT RUN
 `.env.local` holds no usable credentials: `VITE_SUPABASE_URL` is the literal string `"[SENSITIVE]"` (apparently a redacted Vercel export). The script exits with code 2 and a message in that state. Put the real URL and anon key in `.env.local`, then run `node scripts/r1-livetest.mjs`. It refuses to start if a "ZZ-R1-TEST" event already exists, so it cannot touch other data. It has never run against the database, so treat it as unverified until it has.
 
+Commit 4 (R1.1), gate and refetch merge
+- Sound gate: `gateDismissed` is a module-level flag in `notify.ts`, set only by a tap on the gate button (success or failure). A failed unlock from the login flow does not set it. The gate shows only while audio is locked and the flag is false. After dismissal, a locked state shows "Sound off · tap to retry" in the Press and Cashier top bar until audio unlocks, so the user is never trapped behind the overlay.
+- Refetch merge: `useOrders` records realtime inserts, updates and deletes since the latest request started (reset right after `++reqSeq`) and applies the snapshot through `mergeOrders` (`src/lib/mergeOrders.ts`), which overlays upserts, keeps deletes deleted, and drops completed and cancelled orders. The merged list feeds `setOrders` and `onLoaded`. `node scripts/check-merge-orders.ts` asserts the five cases. If two refetches overlap and the older one lands first, realtime events from before the newer request started can still be overwritten until the newer response applies.
+- RoleSelect calls `unlockAudio()` before the `verify_pin` await; `useOrders` loads only new, in_progress and ready orders.
+
 ## Deferred / known limits
 - Offline write queue, cancel, staff, event activation, design editing, image compression: non-goals.
 - `create_order` has no timeout or retry guard (not idempotent). A dropped response can leave the cashier unsure whether the order exists.
-- A realtime event that lands while a refetch is in flight can be overwritten by that older snapshot. The next 20 s poll or resubscribe heals it. A merge by timestamp would fix it properly.
-- The sound gate has no "continue without sound". If audio can never unlock (missing or unplayable file), the tap does nothing and the gate stays.
 - Muted `play()` succeeds without a gesture on some browsers, so unlocked is decided only by `unlockAudio()` calls, which only come from taps. Whether sound is truly audible on a given tablet still needs the manual check.
 - PWA orientation change only reaches installed tablets after the service worker updates and the app is re-added or the manifest refreshes; some platforms cache the manifest.
 
@@ -57,3 +60,6 @@ Commit 3, PWA config, thresholds, placeholders, test script (2i-2k)
 | 12 | Rotate the tablet (installed PWA): landscape allowed | |
 | 13 | Wait timer turns amber at 7 min and red at 15 min | |
 | 14 | `node scripts/r1-livetest.mjs` against real credentials: all PASS, zero leftovers | |
+| 15 | Gate never traps: with audio unable to unlock, tap the gate once; it disappears and "Sound off · tap to retry" shows in the top bar | |
+| 16 | An order created from another device during a refetch does not flicker away | |
+| 17 | Sound works after a fresh PIN login on iPad | |

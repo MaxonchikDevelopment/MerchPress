@@ -13,3 +13,19 @@ Read-only recon, branch `gdansk-sprint`, 2026-10-05.
 - `supabase/migrations` contains only `0001_init.sql` and `0002_storage.sql`. No staff-management RPCs exist there; the only PIN RPC is `verify_pin`. The `users` table has open insert/update/delete policies for anon. The decision in `06_SECURITY.md` describes SECURITY DEFINER staff RPCs that are not in the migrations, so they may exist only in the live database (one DB, production) or not at all. Needs verification.
 - `0001_init.sql:2` and `:172-173` already document the PIN/permissive-RLS trade-off.
 - `git config user.name/email` is not set; commits used a one-off `-c` override.
+
+## Live DB check
+Checked against the live database (one DB, production).
+
+Before migration:
+- Policies, the three functions (`create_order`, `set_order_status`, `verify_pin`: SECURITY DEFINER, EXECUTE to anon), the enums and the realtime publication matched `0001` and `0002`.
+- Data: one event "Hyrox Riga" (active, 9 orders, 3 stuck in `ready`); five seed staff with demo PINs; bucket `designs` public with no limits; `users` had no SELECT policy.
+
+After `0003` and `0004` were applied on 2026-10-05:
+- Order statuses include `cancelled`.
+- `users` has zero policies.
+- Ten public functions.
+- Bucket `designs` limit is 5242880 bytes.
+- `_assert_admin` is not executable by anon.
+
+A backup was taken before the migration.

@@ -18,10 +18,24 @@ function setAudioState(next: AudioState) {
 }
 
 export const getAudioState = (): AudioState => audioState;
+// True once the user tapped the full-screen gate itself (whether or not the
+// unlock worked). A failed unlock from the login flow does not set it.
+let gateDismissed = false;
+
+export const getGateDismissed = (): boolean => gateDismissed;
 export const isAudioUnlocked = (): boolean => audioState === 'unlocked';
 export function subscribeAudioState(l: () => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
+}
+
+// The gate's own button: dismisses the gate for good, then tries to unlock.
+export function tapGate(): void {
+  if (!gateDismissed) {
+    gateDismissed = true;
+    listeners.forEach((l) => l());
+  }
+  unlockAudio();
 }
 
 function getAudio(src: string): HTMLAudioElement {

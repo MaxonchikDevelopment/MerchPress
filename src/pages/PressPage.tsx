@@ -80,7 +80,7 @@ export function PressPage() {
 
   return (
     <div className="app">
-      <TopBar title="Press queue" />
+      <TopBar title="Press queue" soundRetry />
       <OfflineBanner connected={connected} />
       <div className="content">
         {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}

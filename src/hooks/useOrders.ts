@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { subscribeOrders } from '../lib/realtime';
+import { mergeOrders } from '../lib/mergeOrders';
 import type { Order } from '../types/db';
 
 export type LoadKind = 'initial' | 'refetch';
@@ -39,6 +40,9 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
   const hasLoaded = useRef(false);
   const reqSeq = useRef(0); // issued request ids
   const appliedSeq = useRef(0); // highest request id already applied
+  // Realtime changes seen since the latest refetch started; overlaid on its snapshot.
+  const rtUpserts = useRef(new Map<string, Order>());
+  const rtDeletes = useRef(new Set<string>());
 
   const reload = useCallback(async () => {
     if (!eventId) {
@@ -47,6 +51,8 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
       return;
     }
     const seq = ++reqSeq.current;
+    rtUpserts.current = new Map();
+    rtDeletes.current = new Set();
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -62,7 +68,7 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
       return;
     }
     appliedSeq.current = seq;
-    const list = data as Order[];
+    const list = mergeOrders(data as Order[], rtUpserts.current.values(), rtDeletes.current);
     const kind: LoadKind = hasLoaded.current ? 'refetch' : 'initial';
     hasLoaded.current = true;
     setOrders(list);
@@ -84,18 +90,26 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
     let disposed = false;
     const channel = subscribeOrders(eventId, {
       onInsert: (order) => {
+        rtUpserts.current.set(order.id, order);
+        rtDeletes.current.delete(order.id);
         setOrders((prev) =>
           prev.some((o) => o.id === order.id) ? prev : [...prev, order],
         );
         cb.current.onNew?.(order);
       },
       onUpdate: (next, prev) => {
+        rtUpserts.current.set(next.id, next);
+        rtDeletes.current.delete(next.id);
         setOrders((cur) => cur.map((o) => (o.id === next.id ? next : o)));
         if (next.status === 'ready' && prev?.status !== 'ready') {
           cb.current.onReady?.(next);
         }
       },
-      onDelete: (id) => setOrders((cur) => cur.filter((o) => o.id !== id)),
+      onDelete: (id) => {
+        rtDeletes.current.add(id);
+        rtUpserts.current.delete(id);
+        setOrders((cur) => cur.filter((o) => o.id !== id));
+      },
       onResubscribe: () => void reload(),
       onStatus: (status) => {
         if (disposed) return;

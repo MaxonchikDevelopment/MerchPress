@@ -108,7 +108,7 @@ export function CashierPage() {
 
   return (
     <div className="app">
-      <TopBar title="Cashier" />
+      <TopBar title="Cashier" soundRetry />
       <OfflineBanner connected={connected} />
       <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">

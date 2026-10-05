@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { setOrderStatus } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
@@ -7,6 +7,8 @@ import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
 import { OrderCard } from '../components/OrderCard';
 import { TopBar, OfflineBanner } from '../components/TopBar';
+import { SoundGate } from '../components/SoundGate';
+import { Toast } from '../components/ui/Toast';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, OrderStatus } from '../types/db';
@@ -18,6 +20,8 @@ export function PressPage() {
 
   const seenNew = useMemo(() => new SeenSet(`mpq.seenNew.${eventId}`), [eventId]);
   const [busyIds, setBusyIds] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Tick so overdue edge/pulse escalates over time (visual only; never re-sorts).
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -52,15 +56,17 @@ export function PressPage() {
     [orders],
   );
 
-  const setStatus = async (id: string, status: OrderStatus) => {
+  const setStatus = async (order: Order, status: OrderStatus) => {
+    const id = order.id;
     if (busyIds.includes(id)) return; // double-tap guard
     setBusyIds((b) => [...b, id]);
-    await supabase.rpc('set_order_status', {
-      p_order_id: id,
-      p_status: status,
-      p_user_id: user?.id,
-    });
+    const ok = await setOrderStatus(id, status, user?.id);
     setBusyIds((b) => b.filter((x) => x !== id));
+    if (!ok) {
+      setToast(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
+      clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 5000);
+    }
   };
 
   if (!activeEvent) {
@@ -77,6 +83,7 @@ export function PressPage() {
       <TopBar title="Press queue" />
       <OfflineBanner connected={connected} />
       <div className="content">
+        {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
           {queue.length} in queue
         </div>
@@ -95,11 +102,11 @@ export function PressPage() {
             return (
               <OrderCard key={o.id} order={o} designs={designs} showWait edgeColor={edgeColor} alert={overdue}>
                 {o.status === 'new' ? (
-                  <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => setStatus(o.id, 'in_progress')}>
+                  <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => setStatus(o, 'in_progress')}>
                     {busy ? <><Spinner /> …</> : 'Claim — start printing'}
                   </button>
                 ) : (
-                  <button className="btn btn-lg btn-ok" disabled={busy} onClick={() => setStatus(o.id, 'ready')}>
+                  <button className="btn btn-lg btn-ok" disabled={busy} onClick={() => setStatus(o, 'ready')}>
                     {busy ? <><Spinner /> …</> : '✓ Ready'}
                   </button>
                 )}
@@ -109,6 +116,7 @@ export function PressPage() {
           {queue.length === 0 && <EmptyState>Queue is empty 🎉</EmptyState>}
         </div>
       </div>
+      <SoundGate />
     </div>
   );
 }

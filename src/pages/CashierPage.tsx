@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
@@ -8,6 +9,7 @@ import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
 import { DesignPicker } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
+import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
 import { TopBar, OfflineBanner } from '../components/TopBar';
 import { SectionLabel } from '../components/ui/SectionLabel';
@@ -26,6 +28,8 @@ export function CashierPage() {
   const seenReady = useMemo(() => new SeenSet(`mpq.seenReady.${userId}.${eventId}`), [userId, eventId]);
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
   const [completing, setCompleting] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const onReady = useCallback(
     (order: Order) => {
@@ -80,15 +84,17 @@ export function CashierPage() {
     [orders, user?.id],
   );
 
-  const complete = async (id: string) => {
+  const complete = async (order: Order) => {
+    const id = order.id;
     if (completing.includes(id)) return; // double-tap guard
     setCompleting((c) => [...c, id]);
-    await supabase.rpc('set_order_status', {
-      p_order_id: id,
-      p_status: 'completed',
-      p_user_id: user?.id,
-    });
+    const ok = await setOrderStatus(id, 'completed', user?.id);
     setCompleting((c) => c.filter((x) => x !== id));
+    if (!ok) {
+      setToast(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
+      clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 5000);
+    }
   };
 
   if (!activeEvent) {
@@ -109,6 +115,7 @@ export function CashierPage() {
           <NewOrderForm designs={designs} />
 
           <section>
+            {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
               {readyOrders.map((o) => (
@@ -116,7 +123,7 @@ export function CashierPage() {
                   <button
                     className="btn btn-lg btn-ok"
                     disabled={completing.includes(o.id)}
-                    onClick={() => complete(o.id)}
+                    onClick={() => complete(o)}
                   >
                     {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
                   </button>
@@ -128,6 +135,7 @@ export function CashierPage() {
         </div>
       </div>
 
+      <SoundGate />
       {overlay && (
         <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => setOverlay(null)} />
       )}

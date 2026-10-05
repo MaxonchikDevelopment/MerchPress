@@ -36,6 +36,8 @@
   --status-ready-ink: #0b0c0e;
   --status-done-bg: #3a3f4a;
   --status-done-ink: #c7ccd4;
+  --status-cancelled-bg: #3a3f4a;
+  --status-cancelled-ink: #c7ccd4;
   --danger: #ef4444;
   --warn: #f59e0b;
   --ok: #34d399;

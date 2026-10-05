@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
 import { useSession } from '../context/SessionContext';
@@ -151,6 +151,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const [backId, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [busy, setBusy] = useState(false);
+  const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
 
   const allowedColors = useMemo(() => {
@@ -167,23 +168,27 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const submit = async () => {
     if (!canSubmit || !activeEvent) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc('create_order', {
-      p_event_id: activeEvent.id,
-      p_shirt_color: color,
-      p_shirt_size: size,
-      p_design_front_id: frontId,
-      p_design_back_id: backId,
-      p_client_name: clientName,
-      p_created_by: user?.id,
-      p_cashier_key: user?.id,
-      p_cashier_name: user?.name,
+    // One id per draft, reused on every retry; renewed only after success (or an event switch).
+    if (requestId.current?.eventId !== activeEvent.id) {
+      requestId.current = { id: crypto.randomUUID(), eventId: activeEvent.id };
+    }
+    const order = await createOrder({
+      eventId: activeEvent.id,
+      color,
+      size,
+      frontId,
+      backId,
+      clientName,
+      userId: user?.id,
+      userName: user?.name,
+      requestId: requestId.current.id,
     });
     setBusy(false);
-    if (error) {
-      setToast({ msg: `Error: ${error.message}`, tone: 'error' });
+    if (!order) {
+      setToast({ msg: 'Not confirmed. Tap Send again.', tone: 'error' });
       return;
     }
-    const order = data as Order;
+    requestId.current = null;
     setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
     setColor(null);
     setSize(null);

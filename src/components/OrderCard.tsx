@@ -100,7 +100,7 @@ export function OrderCard({
           </span>
         )}
         <div className="spacer" />
-        {showWait && order.status !== 'completed' && <WaitTimer since={order.new_at} />}
+        {showWait && order.status !== 'completed' && order.status !== 'cancelled' && <WaitTimer since={order.new_at} />}
       </div>
 
       <div className="row" style={{ gap: 'var(--sp-5)' }}>

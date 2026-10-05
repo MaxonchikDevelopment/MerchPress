@@ -2,12 +2,6 @@
 
 Branch `gdansk-sprint`. Not pushed, not merged. No schema, RLS, RPC, migration, auth or dependency change.
 
-## Recon result
-Every problem in the brief matched the code. Differences and additions:
-- `reloadActiveEvent` also set the event to `null` when the query failed, so a failed fetch rendered "No active event". The shared fetch now keeps the current event on error.
-- `onLoaded` fired on refetches too and silently seeded everything. This was the gap-alert bug behind 2d.
-- The `SeenSet` storage key depends on `eventId` (and cashier id). With the silent event refresh the event can change while a page is mounted, so a create-once `useRef` would keep a stale key. It is a `useMemo` keyed on the storage key instead: built once per key, not per render.
-
 ## Done
 Commit 1, realtime, refetch, gap alerts (2a-2e, 2g)
 - `subscribeOrders` takes `onStatus`. `useOrders.connected` = subscribed (SUBSCRIBED only) AND browser online AND last query ok. The unconditional `setConnected(true)` is gone.

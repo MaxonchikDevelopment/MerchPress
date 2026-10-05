@@ -2,12 +2,6 @@
 
 Branch `gdansk-sprint`. Not pushed, not merged. Migrations 0003 and 0004 were applied by the owner beforehand; no migration, SQL, auth flow or dependency was touched.
 
-## Recon
-Section 4 of R2A still matches the code after R1.1. Differences:
-- Line numbers drifted after R1/R1.1 (for example the status spots in `CashierPage`).
-- `useOrders` now loads only new, in_progress and ready orders and `mergeOrders` already drops `cancelled`, so no change was needed there. A realtime update that flips an order to `cancelled` stays in the in-memory list until the next refetch, so every list filters by status.
-- The session user lives in `localStorage` (`mpq.session`), so the admin PIN needed its own in-memory store.
-
 ## Done
 Commit 1: types, idempotent create
 - `OrderStatus` has `cancelled`; `Order`, `EventRow`, `Design`, `OrderStats` have the new columns; `STATUS_COLORS` and the `--status-cancelled-*` tokens; the wait timer hides for cancelled.
@@ -75,4 +69,4 @@ CashierPage compares the order returned by `create_order_v2` with the draft (col
 | 20 | Stats: Cancelled KPI correct; Total orders excludes cancelled; breakdowns exclude cancelled | |
 | 21 | Stats: CSV contains cancelled orders with status `cancelled` and a `cancelled_at` value | |
 | 22 | `MP_ADMIN_ID=… MP_ADMIN_PIN=… node scripts/r2-livetest.mjs`: all PASS, owner deletes the ZZ-R2-STAFF row | |
-| 18 | Cashier: send with Wi-Fi off, edit the size, restore Wi-Fi, tap Send. If the first send had landed: persistent error naming the order, form kept, Dismiss works; after cancelling that order and sending again, a new order is created | |
+| 23 | Cashier: send with Wi-Fi off, edit the size, restore Wi-Fi, tap Send. If the first send had landed: persistent error naming the order, form kept, Dismiss works; after cancelling that order and sending again, a new order is created | |

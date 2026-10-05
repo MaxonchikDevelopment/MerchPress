@@ -2,14 +2,6 @@
 
 Branch `gdansk-sprint`. Not pushed, not merged. No migration, SQL, RLS, RPC or dependency change. Migrations 0003 and 0004 were already applied.
 
-## Recon
-- `SHIRT_COLORS`: ColorPicker, AdminDesignsPage. `SHIRT_SIZES`: SizePicker. `colorLabel`: OrderCard, StatsPage (breakdown and CSV).
-- `useDesigns`: CashierPage (pickers and cards), PressPage (cards), StatsPage (names), AdminDesignsPage.
-- The stored session (`mpq.session`) was read once by `loadStoredUser()` in SessionContext and trusted for the whole session; `App.tsx` routes on its `role`.
-- `staff_v` already lists only active users, so "missing" also covers a deactivated person.
-- `reloadActiveEvent` sets `loadingEvent`, which makes `App` unmount the page. The event editor needed a silent refresh, so the context gained `refreshActiveEvent`.
-- `orders.design_*_id` references `designs(id)` with no cascade, so deleting a used design fails with SQLSTATE 23503.
-
 ## Done
 Commit 1: per-event options and Events editor
 - `src/lib/eventOptions.ts`: `eventOptions(event)` returns `{ colors, sizes, colorLabel }`. Colours are validated (`{ key, label, #rrggbb }`), ink colour comes from WCAG luminance, sizes keep XS..XXL order, null or empty falls back to `config.ts`. `colorLabel` returns the stored key when nothing matches.

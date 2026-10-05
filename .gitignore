@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets and local artifacts
+.env
+.env.*
+!.env.example
+.vercel
+backup_*.sql
+*.dump

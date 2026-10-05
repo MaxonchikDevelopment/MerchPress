@@ -38,7 +38,7 @@ export function AdminEventsPage() {
         <h2 style={{ margin: 0 }}>New event</h2>
         <div>
           <SectionLabel>Event name</SectionLabel>
-          <input placeholder="e.g. Hyrox Riga" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
+          <input placeholder="e.g. Hyrox Gdansk" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
         </div>
         <div>
           <SectionLabel>Location (optional)</SectionLabel>

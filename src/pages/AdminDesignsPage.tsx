@@ -94,7 +94,7 @@ export function AdminDesignsPage() {
 
         <div>
           <SectionLabel>Design name</SectionLabel>
-          <input placeholder="e.g. Riga Skyline" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
+          <input placeholder="e.g. Finisher Front" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
         </div>
 
         <div>

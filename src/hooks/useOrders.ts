@@ -51,6 +51,8 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
       .from('orders')
       .select('*')
       .eq('event_id', eventId)
+      // Neither station renders closed orders; don't re-download them every poll.
+      .in('status', ['new', 'in_progress', 'ready'])
       .order('created_at', { ascending: true });
     // Drop responses for another event or older than one already applied.
     if (eventRef.current !== eventId || seq < appliedSeq.current) return;

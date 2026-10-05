@@ -45,6 +45,9 @@ export function RoleSelect() {
   );
 
   const handlePin = async (pin: string) => {
+    // Must run before the first await: after a network round trip iOS Safari no
+    // longer treats this as a user gesture.
+    unlockAudio();
     if (!picked) return;
     setBusy(true);
     setError(null);
@@ -58,7 +61,6 @@ export function RoleSelect() {
       setError('Wrong PIN');
       return;
     }
-    unlockAudio(); // first user gesture: enable sound on this tablet
     setLastUser(picked); // remember for "Continue as" next time
     login(picked);
   };

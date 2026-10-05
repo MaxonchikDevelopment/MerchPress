@@ -4,6 +4,7 @@ import { useSession } from '../context/SessionContext';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
+import { Toast } from '../components/ui/Toast';
 
 export function AdminEventsPage() {
   const { reloadActiveEvent } = useSession();
@@ -13,6 +14,7 @@ export function AdminEventsPage() {
   const [date, setDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const create = async () => {
     if (!name.trim() || busy) return;
@@ -27,7 +29,7 @@ export function AdminEventsPage() {
   const activate = async (id: string) => {
     if (activating) return;
     setActivating(id);
-    await activateEvent(id);
+    setError(await activateEvent(id));
     await reloadActiveEvent();
     setActivating(null);
   };
@@ -54,6 +56,7 @@ export function AdminEventsPage() {
       </section>
 
       <section>
+        {error && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={error} tone="error" /></div>}
         <SectionLabel>Events · {events.length}</SectionLabel>
         <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
           {events.map((e) => (

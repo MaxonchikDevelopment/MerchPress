@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { supabase } from '../lib/supabase';
+import { clearAdminPin } from '../lib/adminPin';
 import type { EventRow, Staff } from '../types/db';
 
 const STORAGE_KEY = 'mpq.session';
@@ -91,6 +92,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
+    clearAdminPin();
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 

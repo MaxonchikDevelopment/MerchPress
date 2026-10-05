@@ -32,12 +32,13 @@ export function useEvents() {
     [reload],
   );
 
-  // Make exactly one event active (the partial unique index forbids two).
+  // Make exactly one event active, atomically, through activate_event.
+  // Returns an error message, or null on success.
   const activateEvent = useCallback(
-    async (id: string) => {
-      await supabase.from('events').update({ is_active: false }).eq('is_active', true);
-      await supabase.from('events').update({ is_active: true }).eq('id', id);
+    async (id: string): Promise<string | null> => {
+      const { error } = await supabase.rpc('activate_event', { p_event_id: id });
       await reload();
+      return error ? `Couldn't activate the event: ${error.message}` : null;
     },
     [reload],
   );

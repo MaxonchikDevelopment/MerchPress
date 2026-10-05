@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { TopBar } from '../components/TopBar';
 import { AdminEventsPage } from './AdminEventsPage';
 import { AdminDesignsPage } from './AdminDesignsPage';
+import { AdminStaffPage } from './AdminStaffPage';
 import { StatsPage } from './StatsPage';
 
-type Tab = 'events' | 'designs' | 'stats';
+type Tab = 'events' | 'designs' | 'staff' | 'stats';
 
 export function AdminPage() {
   const [tab, setTab] = useState<Tab>('designs');
@@ -12,7 +13,7 @@ export function AdminPage() {
   return (
     <div className="app">
       <TopBar title="Admin">
-        {(['events', 'designs', 'stats'] as Tab[]).map((t) => (
+        {(['events', 'designs', 'staff', 'stats'] as Tab[]).map((t) => (
           <button
             key={t}
             className={tab === t ? 'tab tab-active' : 'tab'}
@@ -26,6 +27,7 @@ export function AdminPage() {
       <div className="content page-enter" key={tab} style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         {tab === 'events' && <AdminEventsPage />}
         {tab === 'designs' && <AdminDesignsPage />}
+        {tab === 'staff' && <AdminStaffPage />}
         {tab === 'stats' && <StatsPage />}
       </div>
     </div>

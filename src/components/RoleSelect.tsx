@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { unlockAudio } from '../lib/notify';
 import { getLastUser, setLastUser } from '../lib/lastUser';
 import { DEV_LOGIN } from '../lib/devAuth';
+import { setAdminPin } from '../lib/adminPin';
 import { useSession } from '../context/SessionContext';
 import { PinPad } from './PinPad';
 import { SectionLabel } from './ui/SectionLabel';
@@ -61,6 +62,7 @@ export function RoleSelect() {
       setError('Wrong PIN');
       return;
     }
+    if (picked.role === 'admin') setAdminPin(pin); // memory only, for the Staff tab
     setLastUser(picked); // remember for "Continue as" next time
     login(picked);
   };

@@ -165,8 +165,9 @@ export function CashierPage() {
             {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
           </button>
         </div>
-        {notices.length > 0 && (
+        {(toast || notices.length > 0) && (
           <div className="top-notices">
+            {toast && <Toast message={toast} tone="error" />}
             {notices.map((n) => (
               <div key={n.key} className="toast toast-error toast-notice" role="status" style={{ justifyContent: 'space-between' }}>
                 <span>{n.text}</span>
@@ -184,7 +185,6 @@ export function CashierPage() {
           </div>
 
           <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
-            {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
               {readyOrders.map((o) => (

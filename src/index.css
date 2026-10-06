@@ -1279,6 +1279,14 @@ select {
 .compat-cell:active {
   transform: scale(0.95);
 }
+/* Admin error toasts live in the page, inside the scroller: stick to its top edge. Opaque backing, the toast tint is translucent. */
+.toast-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: var(--sp-2) 0;
+  background: var(--surface-page);
+}
 .compat-toast {
   position: sticky;
   bottom: var(--sp-4);

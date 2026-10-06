@@ -68,7 +68,7 @@ export function AdminOrdersPage() {
           </button>
         ))}
       </div>
-      {toast && <Toast message={toast} tone="error" />}
+      {toast && <div className="toast-sticky"><Toast message={toast} tone="error" /></div>}
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
         {list.map((o) => (
           <OrderCard key={o.id} order={o} designs={designs} showWait showClaimedBy>

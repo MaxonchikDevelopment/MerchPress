@@ -1,5 +1,8 @@
 import type { Order } from '../types/db';
 
+// How long a cancel notice stays on screen (Press and Cashier); each also has a Dismiss button.
+export const NOTICE_MS = 30_000;
+
 export interface CancelNotice {
   orderNo: number;
   by: string | null; // user id of whoever cancelled, null when unknown

@@ -45,16 +45,22 @@ export async function claimOrder(orderId: string, userId: string | undefined): P
   return classifyClaim(await callSetOrderStatus(orderId, 'in_progress', userId), userId);
 }
 
+// Name of a staff member. `ok` is false only when the read itself failed; a person that
+// staff_v does not list (deactivated) is ok with a null name.
+export async function staffNameLookup(id: string): Promise<{ name: string | null; ok: boolean }> {
+  try {
+    const { data, error } = await supabase.from('staff_v').select('name').eq('id', id).maybeSingle();
+    if (error) return { name: null, ok: false };
+    return { name: (data as { name: string } | null)?.name ?? null, ok: true };
+  } catch {
+    return { name: null, ok: false };
+  }
+}
+
 // Name of a staff member, looked up only after a lost claim. Null on any failure.
 export async function staffName(id: string | null): Promise<string | null> {
   if (!id) return null;
-  try {
-    const { data, error } = await supabase.from('staff_v').select('name').eq('id', id).maybeSingle();
-    if (error) return null;
-    return (data as { name: string } | null)?.name ?? null;
-  } catch {
-    return null;
-  }
+  return (await staffNameLookup(id)).name;
 }
 
 export type CancelResult = 'cancelled' | 'already_closed' | 'failed';

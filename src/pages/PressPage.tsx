@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { claimOrder, setOrderStatus, staffName } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
-import { cancelNotice } from '../lib/cancelNotice';
+import { cancelNotice, NOTICE_MS } from '../lib/cancelNotice';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
@@ -60,7 +60,7 @@ export function PressPage() {
       const name = n.by ? await staffName(n.by) : null;
       const text = `Order #${n.orderNo} cancelled by ${name ?? 'someone'}`;
       setNotices((l) => [...l.filter((x) => x.key !== next.id), { key: next.id, text }]);
-      setTimeout(() => dismissNotice(next.id), 15_000);
+      setTimeout(() => dismissNotice(next.id), NOTICE_MS);
     },
     [userId, dismissNotice],
   );

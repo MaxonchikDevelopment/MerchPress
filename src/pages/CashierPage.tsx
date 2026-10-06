@@ -178,8 +178,8 @@ export function CashierPage() {
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
               {myOpenOrders.map((o) => (
-                <OrderCard key={o.id} order={o} designs={designs}>
-                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
+                <OrderCard key={o.id} order={o} designs={designs} showClaimedBy>
+                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
@@ -195,7 +195,7 @@ export function CashierPage() {
                   >
                     {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
                   </button>
-                  <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
+                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {readyOrders.length === 0 && <EmptyState>Nothing ready yet.</EmptyState>}

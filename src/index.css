@@ -212,6 +212,16 @@ button {
   color: var(--danger-text);
 }
 
+/* Visible but not loud: red outline and text on the card surface */
+.btn-danger-outline {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger-text);
+}
+.btn-danger-outline:not(:disabled):hover {
+  background: var(--danger-soft);
+}
+
 .btn-lg {
   min-height: var(--touch-lg);
   font-size: 22px;

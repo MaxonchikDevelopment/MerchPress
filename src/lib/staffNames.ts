@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
-import { staffName } from './orderStatus';
+import { staffNameLookup } from './orderStatus';
 
 // Staff names by id for display, read from the PIN-free staff_v view. Successful
-// lookups are kept for the session; failures are not, so the next mount retries.
+// lookups are kept for the session; failures are never cached.
 const names = new Map<string, string>();
-const inflight = new Map<string, Promise<string | null>>();
+const inflight = new Map<string, Promise<{ name: string | null; ok: boolean }>>();
 
-function lookup(id: string): Promise<string | null> {
+// A failed read is retried after these delays (ms). A person staff_v does not list
+// (deactivated) is a clean "not found" and is not retried.
+const RETRY_DELAYS = [1500, 4000];
+
+function lookup(id: string): Promise<{ name: string | null; ok: boolean }> {
   let p = inflight.get(id);
   if (!p) {
-    p = staffName(id)
-      .then((name) => {
-        if (name) names.set(id, name);
-        return name;
+    p = staffNameLookup(id)
+      .then((res) => {
+        if (res.name) names.set(id, res.name);
+        return res;
       })
       .finally(() => inflight.delete(id));
     inflight.set(id, p);
@@ -20,17 +24,27 @@ function lookup(id: string): Promise<string | null> {
   return p;
 }
 
-// Null until resolved, and stays null for an inactive person or a failed read.
+// Null until resolved, and stays null for an inactive person or after the retries failed.
 export function useStaffName(id: string | null): string | null {
   const [resolved, setResolved] = useState<{ id: string; name: string } | null>(null);
   useEffect(() => {
     if (!id || names.has(id)) return;
     let live = true;
-    void lookup(id).then((name) => {
-      if (live && name) setResolved({ id, name });
-    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = (n: number) => {
+      void lookup(id).then((res) => {
+        if (!live) return;
+        if (res.name) {
+          setResolved({ id, name: res.name });
+        } else if (!res.ok && n < RETRY_DELAYS.length) {
+          timer = setTimeout(() => attempt(n + 1), RETRY_DELAYS[n]);
+        }
+      });
+    };
+    attempt(0);
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, [id]);
   if (!id) return null;

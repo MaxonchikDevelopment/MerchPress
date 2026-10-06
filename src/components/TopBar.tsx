@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import { useSession } from '../context/SessionContext';
 import { SoundRetryButton } from './SoundGate';
+import { getWakeLockState, retryWakeLock, subscribeWakeLockState } from '../hooks/useWakeLock';
 
 export function TopBar({
   title,
@@ -12,6 +13,7 @@ export function TopBar({
   soundRetry?: boolean; // Press and Cashier: show the retry button when audio is locked
 }) {
   const { user, activeEvent, logout } = useSession();
+  const wakeState = useSyncExternalStore(subscribeWakeLockState, getWakeLockState);
   return (
     <header className="topbar">
       <div>
@@ -20,6 +22,11 @@ export function TopBar({
       </div>
       <div className="row">
         {soundRetry && <SoundRetryButton />}
+        {user && wakeState !== 'held' && (
+          <button className="pill" onClick={retryWakeLock} style={{ cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }} title="The screen is not being kept awake. Tap to retry.">
+            <span aria-hidden="true">💤</span> Screen may sleep
+          </button>
+        )}
         {children && <nav className="topbar-nav" aria-label="Sections">{children}</nav>}
         {user?.name && (
           <span className="pill" title={`Signed in as ${user.name}`}>

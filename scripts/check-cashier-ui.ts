@@ -26,6 +26,13 @@ test('summary: all chosen with designs', () =>
     orderSummary({ colorLabel: 'Black', size: 'M', frontName: 'Name A', backName: 'Name B' }),
     'Black · M · Front: Name A · Back: Name B',
   ));
+test('summary: bundle shows its name once', () =>
+  assert.equal(
+    orderSummary({ colorLabel: 'Black', size: 'M', frontName: 'Wolf', backName: 'Wolf', bundleName: 'Wolf' }),
+    'Black · M · Bundle: Wolf',
+  ));
+test('summary: no bundle name falls back to front and back', () =>
+  assert.equal(orderSummary({ ...none, frontName: 'A', backName: 'B', bundleName: null }), 'Front: A · Back: B'));
 test('summary: all chosen without designs', () =>
   assert.equal(orderSummary({ colorLabel: 'White', size: 'XL', frontName: null, backName: null }), 'White · XL'));
 

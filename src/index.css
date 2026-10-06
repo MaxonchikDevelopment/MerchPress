@@ -406,6 +406,19 @@ select:focus-visible {
   }
 }
 
+/* Bundle / Custom print switch in the New order form */
+.print-mode {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--surface-raised);
+  border-radius: var(--r-pill);
+}
+.print-mode .tab {
+  flex: 1;
+  text-transform: none;
+}
+
 /* Segmented nav tab (Maxona indicator idiom, CSS-only) */
 .tab {
   min-height: 44px;

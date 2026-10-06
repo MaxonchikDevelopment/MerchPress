@@ -133,14 +133,19 @@ export function TopBlock({ children }: { children: ReactNode }) {
 }
 
 // Amber banner shown when the realtime connection is down — reads as "degraded".
-// `loaded` (first fetch done) shows it at once; before that it waits a grace from mount.
-export function OfflineBanner({ connected, loaded = true }: { connected: boolean; loaded?: boolean }) {
+// Shows at once once the connection has been up; before the first connection it waits a
+// grace from mount.
+export function OfflineBanner({ connected }: { connected: boolean }) {
   const [graceElapsed, setGraceElapsed] = useState(false);
+  const [everConnected, setEverConnected] = useState(false);
+  useEffect(() => {
+    if (connected) setEverConnected(true);
+  }, [connected]);
   useEffect(() => {
     const t = setTimeout(() => setGraceElapsed(true), OFFLINE_GRACE_MS);
     return () => clearTimeout(t);
   }, []);
-  if (!offlineBannerVisible(connected, loaded, graceElapsed)) return null;
+  if (!offlineBannerVisible(connected, everConnected, graceElapsed)) return null;
   return (
     <div className="banner banner-offline" role="alert">
       ⚠ Reconnecting… orders may be delayed

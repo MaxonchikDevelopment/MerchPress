@@ -128,7 +128,7 @@ export function PressPage() {
     <div className="app">
       <TopBlock>
         <TopBar title="Press queue" soundRetry />
-        <OfflineBanner connected={connected} loaded={loaded} />
+        <OfflineBanner connected={connected} />
         {(toast || notices.length > 0) && (
           <div className="top-notices">
             {toast && <Toast message={toast} tone="error" />}
@@ -144,7 +144,7 @@ export function PressPage() {
       </TopBlock>
       <div className="content">
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
-          {loaded ? `${queue.length} in queue` : 'Loading orders…'}
+          {loaded ? `${queue.length} in queue` : '\u00a0'}
         </div>
         <div
           className="grid"

@@ -30,16 +30,20 @@ Written before any other file was edited. Line numbers are for 3c47368. Everythi
 
 3 code commits on top of this report, in this order.
 
-1. `feat(orders)`: `useOrders` returns `loaded`; Press and Cashier show "Loading orders…" instead of the empty states until it is true (Press also in the "N in queue" line); `OfflineBanner` takes `loaded` (default `true`) and a 3 s grace from mount, decided by `offlineBannerVisible` in [offlineBanner.ts](../../src/lib/offlineBanner.ts); [check-offline-banner.ts](../../scripts/check-offline-banner.ts) covers connected, not connected inside grace, not connected after grace (first fetch failed: banner shows) and not connected after loaded.
+1. `feat(orders)`: `useOrders` returns `loaded`; Press and Cashier show "Loading orders…" instead of the empty states until it is true ; `OfflineBanner` waits for the first connection or a 3 s grace from mount, decided by `offlineBannerVisible(connected, everConnected, graceElapsed)` in [offlineBanner.ts](../../src/lib/offlineBanner.ts) (see Review fix); [check-offline-banner.ts](../../scripts/check-offline-banner.ts) covers connected, startup (never connected, inside grace), cannot connect (grace elapsed), and was connected before. The "N in queue" line stays empty until loaded.
 2. `fix(login)`: `RoleSelect` tracks `staffState` (loading, error, ok); "Loading staff…", "Couldn't load staff. Check the connection." with a 72 px Retry (`btn-lg`), "No staff for this role yet." only after an ok load; a `mounted` ref drops answers after unmount.
 3. `fix(cashier)`: `useDesigns` returns `loading` and `error`, keeps the previous list on a failed read; `NewOrderForm` renders `DesignsStatus` above the Bundle and Custom pickers.
 
 Not changed, as required: `mergeOrders`, `rtUpserts`, `rtDeletes`, `reqSeq`, `appliedSeq`, `onNew`, `onLoaded`, `onReady`, `onCancelled`, the subscription, polling, `lib/appUpdate`, audio, wake lock, `handlePin`, `verify_pin`, `unlockAudio`, order numbering, `create_order_v2`, `createOrder`, `canSubmit`, `submit()`, `complete()`, `askCancel()`, `clearDraft()`. No real data touched, `activate_event` not called.
 
 Notes:
-- The grace timer lives in `OfflineBanner`, so it starts when the page mounts. Resume from background does not restart it (`loaded` is already true then), as decided.
+- The grace timer lives in `OfflineBanner`, so it starts when the page mounts. Resume from background does not restart it (the connection already existed), as decided.
 - `useDesigns` now sets `loading` to true on every `reload`, including the ones the Admin Designs page triggers after an edit. Only Cashier reads `loading`, so nothing flickers there.
 - Acceptance texts are in Russian like the rest of the file.
+
+## Review fix
+
+Review found that the first version keyed the banner on `loaded`. At launch the first REST fetch usually finishes before the realtime socket subscribes, so `loaded` was true while `connected` was still false and the banner still flashed at every launch, which is what A-05 was meant to remove. The rule is now `offlineBannerVisible(connected, everConnected, graceElapsed) = !connected && (everConnected || graceElapsed)`. `OfflineBanner` sets `everConnected` in an effect when `connected` is true and never resets it while mounted; the 3 s timer (`OFFLINE_GRACE_MS`) starts at mount. The `loaded` prop is gone from `OfflineBanner` and its two call sites; `useOrders` still returns `loaded` for the "Loading orders…" texts, and `useOrders.ts` is not touched. Press: the "N in queue" line is a non-breaking space until loaded (keeps its height), because the empty state below already says "Loading orders…". Effect: launch on a slow link, no banner inside 3 s; no network at launch, banner after about 3 s; network drops after a connection, banner at once. `connected` still requires `subscribed && online && fetchOk`, so a socket that never subscribes also shows it after 3 s.
 
 ## Validation
 
@@ -50,7 +54,7 @@ All run on the final tree.
 - `npm run build`: ok.
 - `grep -c "Dev login" dist/assets/*.js`: 0 in both files.
 - `git --no-pager grep -n -i "service_role" -- src`: empty.
-- Every `scripts/check-*.ts` passes (20 scripts, including the new `check-offline-banner.ts` with 5 checks); `node scripts/check-sounds.mjs` passes.
+- Every `scripts/check-*.ts` passes (20 scripts, including `check-offline-banner.ts`, 5 checks after the review fix); `node scripts/check-sounds.mjs` passes.
 - `package.json` and `package-lock.json`: no diff against `main`.
 
 ## Manual steps for an iPhone PWA
@@ -58,12 +62,13 @@ All run on the final tree.
 **Nothing below has been verified on a device or in a browser. Everything above is from reading code and running the pure-function check scripts.** Do it on the `ZZ-TEST` event, never during a live event.
 
 1. **Login without network.** Airplane mode on, then launch the app. Tap Cashier. Expect "Couldn't load staff. Check the connection." and a Retry button, not "No staff for this role yet.". Turn airplane mode off, wait a few seconds, tap Retry: "Loading staff…" briefly, then the names; log in with a PIN.
-2. **Slow link, Press.** Throttle the link (weak Wi-Fi, or Slow 3G on a laptop), open Press. Expect "Loading orders…" in the counter line and in the empty area, no "0 in queue", no "Queue is empty 🎉", and no orange banner flash in the first seconds. After the orders arrive, "N in queue" or the empty state.
+2. **Slow link, Press.** Throttle the link (weak Wi-Fi, or Slow 3G on a laptop), open Press. Expect "Loading orders…" in the counter line and in the empty area, no "0 in queue", no "Queue is empty 🎉", and no orange banner within the first 3 s, and the "N in queue" line empty (not "Loading orders…" twice). After the orders arrive, "N in queue" or the empty state.
 3. **Slow link, Cashier.** Same, open the Queue tab: "Loading orders…" in both sections, no "None of your orders is ready yet." or "No open orders from you." until loaded.
-4. **Network lost after login.** Logged in on Press or Cashier with orders on screen, switch on airplane mode. The orange banner appears at once (first load already done) and the list stays.
-5. **Launch with no network at all.** Airplane mode, open an already-logged-in session. Expect "Loading orders…", then the orange banner about 3 s after the screen opens (the first fetch failed, so the banner is allowed).
+4. **Network lost after login.** Logged in on Press or Cashier with orders on screen, switch on airplane mode. The orange banner appears at once (the connection existed) and the list stays.
+5. **Launch with no network at all.** Airplane mode, open an already-logged-in session. Expect "Loading orders…", then the orange banner about 3 s after the screen opens (it cannot connect, so the banner is allowed).
 6. **Cashier, designs failing.** Log in on Cashier with the network on, then launch again with airplane mode on (session survives reload) and open New order. In Bundle and in Custom print: "Couldn't load designs. Check the connection." with Retry above the tiles, "No print" still selectable. Network back, Retry: "Loading designs…", then the design tiles.
-7. **Regression glance.** Normal network: login names appear, Press and Cashier show orders, a new order still alerts once, Admin Orders still lists orders.
+7. **Banner timing (review fix).** Launch on a slow link: no orange banner within 3 s while the socket connects. Airplane mode before launch: the banner appears after about 3 s. Drop the network after the app was connected: the banner appears at once.
+8. **Regression glance.** Normal network: login names appear, Press and Cashier show orders, a new order still alerts once, Admin Orders still lists orders.
 
 ## Not in this round
 

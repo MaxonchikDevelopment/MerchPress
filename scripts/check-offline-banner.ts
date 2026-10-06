@@ -13,11 +13,11 @@ test('connected: no banner', () => {
   assert.equal(offlineBannerVisible(true, true, true), false);
   assert.equal(offlineBannerVisible(true, false, false), false);
 });
-test('not connected, not loaded, inside grace: no banner', () =>
+test('not connected, never connected, inside grace (startup): no banner', () =>
   assert.equal(offlineBannerVisible(false, false, false), false));
-test('not connected, not loaded, grace elapsed (first fetch failed): banner', () =>
+test('not connected, never connected, grace elapsed (cannot connect): banner', () =>
   assert.equal(offlineBannerVisible(false, false, true), true));
-test('not connected, loaded: banner at once', () => {
+test('not connected, was connected before: banner at once', () => {
   assert.equal(offlineBannerVisible(false, true, false), true);
   assert.equal(offlineBannerVisible(false, true, true), true);
 });

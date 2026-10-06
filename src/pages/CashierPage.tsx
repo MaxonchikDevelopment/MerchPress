@@ -145,7 +145,7 @@ export function CashierPage() {
     <div className="app">
       <TopBlock>
         <TopBar title="Cashier" soundRetry />
-        <OfflineBanner connected={connected} loaded={loaded} />
+        <OfflineBanner connected={connected} />
         <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
           <button
             role="tab"

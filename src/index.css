@@ -247,10 +247,10 @@ select:focus-visible {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-5);
-  padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  padding-top: calc(var(--sp-2) + env(safe-area-inset-top));
   background: color-mix(in srgb, var(--surface-card) 86%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-subtle);
@@ -258,23 +258,143 @@ select:focus-visible {
   top: 0;
   z-index: 5;
 }
+.topbar-title {
+  flex: 1 1 0;
+  min-width: 0;
+}
 .topbar h1 {
   font-size: 20px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.01em;
 }
+.topbar h1,
+.topbar .sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .topbar .sub {
   color: var(--text-muted);
   font-size: 14px;
 }
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+/* Compact action button: 44 px icon button on phones, icon plus label from 900 px */
+.btn-bar {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--sp-3);
+  font-size: 16px;
+}
+.lbl {
+  display: none;
+}
+.user-menu {
+  position: relative;
+}
+.user-chip-name {
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu-pop {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: 20;
+  min-width: 200px;
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-inner);
+  box-shadow: var(--shadow-raised);
+}
+.user-menu-who {
+  color: var(--text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.user-menu-item {
+  min-height: 48px;
+  width: 100%;
+  background: var(--surface-card);
+}
+.topbar-toast {
+  position: absolute;
+  top: 100%;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  margin-top: var(--sp-2);
+  z-index: 15;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-inner);
+  box-shadow: var(--shadow-raised);
+  font-size: 14px;
+  font-weight: 600;
+}
+/* Section nav: segmented control, its own row and horizontally scrollable on phones */
 .topbar-nav {
+  order: 3;
+  flex: 1 1 100%;
   display: flex;
   gap: var(--sp-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   background: var(--surface-raised);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-pill);
   padding: var(--sp-1);
+}
+.topbar-nav::-webkit-scrollbar {
+  display: none;
+}
+.topbar-nav .tab {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+@media (min-width: 900px) {
+  .topbar {
+    flex-wrap: nowrap;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-5);
+    padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
+  }
+  .topbar-title {
+    flex: 1 1 auto;
+  }
+  .topbar-nav {
+    order: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+  .topbar-nav .tab {
+    flex: 0 0 auto;
+  }
+  .lbl {
+    display: inline;
+  }
+  .btn-bar {
+    padding: 0 var(--sp-4);
+  }
+  .user-chip-name {
+    max-width: 160px;
+  }
+  .topbar-toast {
+    left: auto;
+    right: var(--sp-5);
+    max-width: 360px;
+  }
 }
 
 /* Segmented nav tab (Maxona indicator idiom, CSS-only) */

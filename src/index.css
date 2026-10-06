@@ -219,6 +219,13 @@ select {
   min-height: var(--touch-min);
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
+/* iOS Safari gives date inputs an intrinsic min width that stretches grid columns */
+input[type='date'] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
 input::placeholder {
   color: var(--text-faint);
 }
@@ -319,12 +326,15 @@ select:focus-visible {
   display: grid;
   gap: var(--sp-3);
 }
+.grid > * {
+  min-width: 0;
+}
 
 /* Two-zone layout — stacks on portrait/tablet, splits on wide screens */
 .two-col {
   display: grid;
   gap: var(--sp-5);
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 @media (min-width: 900px) {

@@ -68,7 +68,7 @@ export function AdminEventsPage() {
       <section>
         {error && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={error} tone="error" /></div>}
         <SectionLabel>Events · {events.length}</SectionLabel>
-        <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           {events.map((e) => (
             <div key={e.id} className="grid" style={{ gap: 'var(--sp-3)' }}>
               <div className="card row">

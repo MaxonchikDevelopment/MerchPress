@@ -31,6 +31,7 @@ This docs commit also deletes `supabase/seed.sql` and rewrites README and the au
 | `gdansk-fix-1` (R3) | Wake lock `pending` state, pill only on Press and Cashier; a losing Claim now shows "Already taken by <name>" and refetches (client-side `claimOrder`); concurrency live test `scripts/r3-livetest.mjs`, see `R3_REPORT.md`. |
 | `gdansk-fix-2` (R5) | Alert sounds regenerated (1.2 s and 1.6 s, harmonics, -1 dBFS) with `scripts/check-sounds.mjs`; "Test sound" button in TopBar on Press and Cashier. Audibility not verified, devices only. See `R5_REPORT.md`. |
 | `gdansk-fix-3` (R6) | Pill shows "Set Auto-Lock to Never" when wake lock is unsupported (title was invisible on touch); a Claim that lands on a `ready` row is now `taken` (or `claimed` if it is ours) instead of "Check the connection"; `scripts/check-claim-result.ts`, see `R6_REPORT.md`. |
+| `gdansk-fix-4` (R7) | Date inputs and `1fr` grid columns can no longer stretch the page on narrow phones (`minmax(0, 1fr)`, date input `min-width: 0`); tap a print thumbnail to enlarge it (`ImageLightbox`, below the Ready alert); a muted line says why "Send to press" is disabled (`sendHint`, `scripts/check-send-hint.ts`). Not verified on a device. See `R7_REPORT.md`. |
 
 ## Deferred
 | Item | Why | Return condition |

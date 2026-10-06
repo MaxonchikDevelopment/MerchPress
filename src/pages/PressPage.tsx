@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { setOrderStatus } from '../lib/orderStatus';
+import { claimOrder, setOrderStatus, staffName } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
@@ -68,6 +68,27 @@ export function PressPage() {
     const id = order.id;
     if (busyIds.includes(id)) return; // double-tap guard
     setBusyIds((b) => [...b, id]);
+    if (status === 'in_progress') {
+      const res = await claimOrder(id, user?.id);
+      if (res.kind === 'taken') {
+        const name = (await staffName(res.by)) ?? 'another press station';
+        setBusyIds((b) => b.filter((x) => x !== id));
+        showError(`Already taken by ${name}`);
+        void reload();
+        return;
+      }
+      if (res.kind === 'closed') {
+        setBusyIds((b) => b.filter((x) => x !== id));
+        showError('Order is already closed');
+        void reload();
+        return;
+      }
+      setBusyIds((b) => b.filter((x) => x !== id));
+      if (res.kind === 'failed') {
+        showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);
+      }
+      return;
+    }
     const ok = await setOrderStatus(id, status, user?.id);
     setBusyIds((b) => b.filter((x) => x !== id));
     if (!ok) showError(`Couldn't update order #${order.event_order_no}. Check the connection and tap again.`);

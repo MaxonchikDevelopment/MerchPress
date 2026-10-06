@@ -22,6 +22,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Toast } from '../components/ui/Toast';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, ShirtSize } from '../types/db';
+import { BuildTag } from '../components/BuildTag';
 
 type CashierTab = 'new' | 'queue';
 
@@ -193,6 +194,7 @@ export function CashierPage() {
             </div>
           </section>
         </div>
+        <BuildTag />
       </div>
 
       <SoundGate />

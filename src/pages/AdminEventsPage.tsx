@@ -8,6 +8,7 @@ import type { EventRow } from '../types/db';
 import { Toast } from '../components/ui/Toast';
 import { END_DATE_ERROR, formatEventDates, isEndBeforeStart } from '../lib/eventDates';
 import { EventEditor } from '../components/EventEditor';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function AdminEventsPage() {
   const { reloadActiveEvent, refreshActiveEvent } = useSession();
@@ -20,6 +21,7 @@ export function AdminEventsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
+  const [switchTo, setSwitchTo] = useState<EventRow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const create = async () => {
@@ -42,6 +44,12 @@ export function AdminEventsPage() {
     setError(await activateEvent(id));
     await reloadActiveEvent();
     setActivating(null);
+  };
+
+  // Switching away from a live event moves every station, so ask first.
+  const askActivate = (e: EventRow) => {
+    if (events.some((x) => x.is_active)) setSwitchTo(e);
+    else void activate(e.id);
   };
 
   // After saving the active event the session picks up the change without the full-screen reload.
@@ -114,7 +122,7 @@ export function AdminEventsPage() {
                 {e.is_active ? (
                   <span className="badge" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>● Active</span>
                 ) : (
-                  <button className="btn btn-secondary" onClick={() => activate(e.id)} disabled={activating === e.id}>
+                  <button className="btn btn-secondary" onClick={() => askActivate(e)} disabled={activating === e.id}>
                     {activating === e.id ? <><Spinner /> …</> : 'Set active'}
                   </button>
                 )}
@@ -127,6 +135,19 @@ export function AdminEventsPage() {
           {events.length === 0 && <EmptyState>No events yet.</EmptyState>}
         </div>
       </section>
+      {switchTo && (
+        <ConfirmDialog
+          title={`Switch the active event to ${switchTo.name}? All stations will switch within about 30 seconds.`}
+          confirmLabel="Switch"
+          cancelLabel="Keep current"
+          onConfirm={() => {
+            const id = switchTo.id;
+            setSwitchTo(null);
+            void activate(id);
+          }}
+          onCancel={() => setSwitchTo(null)}
+        />
+      )}
     </div>
   );
 }

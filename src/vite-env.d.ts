@@ -9,3 +9,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Injected by vite.config.ts `define`: first 7 characters of the commit, or "dev".
+declare const __BUILD_ID__: string;

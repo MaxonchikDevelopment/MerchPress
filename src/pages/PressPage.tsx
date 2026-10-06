@@ -13,6 +13,7 @@ import { Toast } from '../components/ui/Toast';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, OrderStatus } from '../types/db';
+import { BuildTag } from '../components/BuildTag';
 
 export function PressPage() {
   const { user, activeEvent } = useSession();
@@ -141,6 +142,7 @@ export function PressPage() {
           })}
           {queue.length === 0 && <EmptyState>Queue is empty 🎉</EmptyState>}
         </div>
+        <BuildTag />
       </div>
       <SoundGate />
       {cancelDialog}

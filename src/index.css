@@ -212,6 +212,16 @@ button {
   color: var(--danger-text);
 }
 
+/* Visible but not loud: red outline and text on the card surface */
+.btn-danger-outline {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger-text);
+}
+.btn-danger-outline:not(:disabled):hover {
+  background: var(--danger-soft);
+}
+
 .btn-lg {
   min-height: var(--touch-lg);
   font-size: 22px;
@@ -282,6 +292,14 @@ select:focus-visible {
   background: var(--surface-bar);
   /* Brand stripe under the header block. Outside the box, so no layout change. */
   box-shadow: 0 2px 0 var(--accent);
+}
+.top-notices {
+  display: grid;
+  gap: var(--sp-2);
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
 }
 .topbar-title {
   flex: 1 1 0;
@@ -573,6 +591,21 @@ select:focus-visible {
 }
 .cashier-footer {
   display: none;
+}
+/* Reset (compact, left) next to Send (fills the rest) */
+.send-row {
+  display: flex;
+  gap: var(--sp-3);
+}
+.send-row .btn-reset {
+  flex: none;
+  min-height: var(--touch-lg);
+  font-size: 16px;
+}
+.send-row .btn-lg {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
 }
 .send-summary {
   color: var(--text-secondary);

@@ -35,7 +35,7 @@ Item 2 of the task (device blocker) was a template placeholder with nothing past
 | [TopBar.tsx](../../src/components/TopBar.tsx) | Wake button gets `btn-wake`; for `unsupported` a second label span `lbl-phone` "Auto-Lock → Never". Nothing else (aria-labels, toast text, handlers, `released` look unchanged). |
 | [index.css](../../src/index.css) | `.topbar-actions` shrinkable, `max-width: calc(100% - 76px)` under 900 px; `.btn-wake` min 48 px, overflow hidden; `.lbl-phone` 13 px, one line, ellipsis, hidden from 900 px; `.user-chip` shrinks first, name floor 3ch. From 900 px the group is as before. |
 
-Docs: F3 AC2 and F4.6 in `12_ACCEPTANCE_TESTS.md` (version 7), R17 entry in `11_PHASE_GDANSK.md`, the `VERCEL_GIT_COMMIT_SHA` note in `R11_REPORT.md` and `11_PHASE_GDANSK.md` now says verified on production (build tag showed 0b98022 on 07.10.2026).
+Docs: F3 AC2 and F4.6 in `12_ACCEPTANCE_TESTS.md` (version 7), R17 entry in `11_PHASE_GDANSK.md`, the `VERCEL_GIT_COMMIT_SHA` note in `R11_REPORT.md` and `11_PHASE_GDANSK.md` now says verified on production (build tag showed 0b98022 on 06.10.2026).
 
 ## Validation
 

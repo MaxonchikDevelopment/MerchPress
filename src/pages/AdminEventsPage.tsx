@@ -6,6 +6,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { EventRow } from '../types/db';
 import { Toast } from '../components/ui/Toast';
+import { END_DATE_ERROR, formatEventDates, isEndBeforeStart } from '../lib/eventDates';
 import { EventEditor } from '../components/EventEditor';
 
 export function AdminEventsPage() {
@@ -15,18 +16,24 @@ export function AdminEventsPage() {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [createError, setCreateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const create = async () => {
     if (!name.trim() || busy) return;
+    if (isEndBeforeStart(date, endDate)) return setCreateError(END_DATE_ERROR);
     setBusy(true);
-    await createEvent(name.trim(), location.trim(), date);
+    setCreateError(null);
+    const err = await createEvent(name.trim(), location.trim(), date, endDate);
+    setBusy(false);
+    if (err) return setCreateError(err);
     setName('');
     setLocation('');
     setDate('');
-    setBusy(false);
+    setEndDate('');
   };
 
   const activate = async (id: string) => {
@@ -57,9 +64,31 @@ export function AdminEventsPage() {
           <input placeholder="Venue / city" value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%' }} />
         </div>
         <div>
-          <SectionLabel>Date (optional)</SectionLabel>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '100%' }} />
+          <SectionLabel>Start date (optional)</SectionLabel>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              if (!e.target.value) setEndDate('');
+            }}
+            style={{ width: '100%' }}
+            aria-label="Start date"
+          />
         </div>
+        <div>
+          <SectionLabel>End date (optional)</SectionLabel>
+          <input
+            type="date"
+            value={endDate}
+            min={date || undefined}
+            disabled={!date}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ width: '100%' }}
+            aria-label="End date"
+          />
+        </div>
+        {createError && <Toast message={createError} tone="error" />}
         <button className="btn btn-primary" onClick={create} disabled={!name.trim() || busy}>
           {busy ? <><Spinner /> Creating…</> : 'Create event'}
         </button>
@@ -75,7 +104,7 @@ export function AdminEventsPage() {
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 800 }}>{e.name}</div>
                   <div className="muted" style={{ fontSize: 14 }}>
-                    {[e.location, e.event_date].filter(Boolean).join(' · ') || '—'}
+                    {[e.location, formatEventDates(e.event_date, e.event_end_date)].filter(Boolean).join(' · ') || '—'}
                   </div>
                 </div>
                 <div className="spacer" />

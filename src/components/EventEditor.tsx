@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SHIRT_SIZES } from '../config';
+import { END_DATE_ERROR, isEndBeforeStart } from '../lib/eventDates';
 import { DEFAULT_COLORS, eventOptions, inkFor, newColorKey } from '../lib/eventOptions';
 import { SectionLabel } from './ui/SectionLabel';
 import { Spinner } from './ui/Spinner';
@@ -13,7 +14,7 @@ interface ColorDraft {
   hex: string;
 }
 
-type Patch = Pick<EventRow, 'name' | 'location' | 'event_date' | 'shirt_colors' | 'shirt_sizes'>;
+type Patch = Pick<EventRow, 'name' | 'location' | 'event_date' | 'event_end_date' | 'shirt_colors' | 'shirt_sizes'>;
 
 const toDrafts = (event: EventRow): ColorDraft[] =>
   eventOptions(event).colors.map(({ key, label, hex }) => ({ key, label, hex }));
@@ -30,6 +31,7 @@ export function EventEditor({
   const [name, setName] = useState(event.name);
   const [location, setLocation] = useState(event.location ?? '');
   const [date, setDate] = useState(event.event_date ?? '');
+  const [endDate, setEndDate] = useState(event.event_end_date ?? '');
   const [colors, setColors] = useState<ColorDraft[]>(() => toDrafts(event));
   const [sizes, setSizes] = useState<ShirtSize[]>(() => [...eventOptions(event).sizes]);
   const [busy, setBusy] = useState(false);
@@ -47,6 +49,7 @@ export function EventEditor({
     if (colors.length === 0) return setError('Keep at least one colour, or reset to defaults.');
     if (colors.some((c) => !c.label.trim())) return setError('Every colour needs a name.');
     if (sizes.length === 0) return setError('Keep at least one size.');
+    if (isEndBeforeStart(date, endDate)) return setError(END_DATE_ERROR);
 
     // New colours get a slug key, unique within the event.
     const taken = new Set(colors.flatMap((c) => (c.key ? [c.key] : [])));
@@ -69,6 +72,7 @@ export function EventEditor({
       name: name.trim(),
       location: location.trim() || null,
       event_date: date || null,
+      event_end_date: date ? endDate || null : null,
       shirt_colors: isDefaultColors ? null : final,
       shirt_sizes: isDefaultSizes ? null : sizes,
     });
@@ -88,8 +92,29 @@ export function EventEditor({
         <input value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%' }} aria-label="Location" />
       </div>
       <div>
-        <SectionLabel>Date</SectionLabel>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '100%' }} aria-label="Date" />
+        <SectionLabel>Start date (optional)</SectionLabel>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            if (!e.target.value) setEndDate('');
+          }}
+          style={{ width: '100%' }}
+          aria-label="Start date"
+        />
+      </div>
+      <div>
+        <SectionLabel>End date (optional)</SectionLabel>
+        <input
+          type="date"
+          value={endDate}
+          min={date || undefined}
+          disabled={!date}
+          onChange={(e) => setEndDate(e.target.value)}
+          style={{ width: '100%' }}
+          aria-label="End date"
+        />
       </div>
 
       <div>

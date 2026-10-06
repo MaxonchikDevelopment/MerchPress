@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { readyBadgeCount } from '../lib/readyBadge';
+import { orderSummary } from '../lib/orderSummary';
 import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
@@ -21,6 +23,8 @@ import { Toast } from '../components/ui/Toast';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, ShirtSize } from '../types/db';
 
+type CashierTab = 'new' | 'queue';
+
 export function CashierPage() {
   const { user, activeEvent } = useSession();
   const eventId = activeEvent?.id ?? null;
@@ -32,6 +36,8 @@ export function CashierPage() {
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
   const [completing, setCompleting] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [tab, setTab] = useState<CashierTab>('new');
+  const contentRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const onReady = useCallback(
@@ -103,6 +109,14 @@ export function CashierPage() {
     [orders, user?.id],
   );
 
+  const readyBadge = readyBadgeCount(orders, userId);
+
+  // Both panes stay mounted (the draft lives in NewOrderForm); a new tab starts at the top.
+  const selectTab = (t: CashierTab) => {
+    setTab(t);
+    contentRef.current?.scrollTo({ top: 0 });
+  };
+
   const complete = async (order: Order) => {
     const id = order.id;
     if (completing.includes(id)) return; // double-tap guard
@@ -125,11 +139,32 @@ export function CashierPage() {
     <div className="app">
       <TopBar title="Cashier" soundRetry />
       <OfflineBanner connected={connected} />
-      <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+        <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
+          <button
+            role="tab"
+            aria-selected={tab === 'new'}
+            className={tab === 'new' ? 'tab tab-active' : 'tab'}
+            onClick={() => selectTab('new')}
+          >
+            New order
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === 'queue'}
+            className={tab === 'queue' ? 'tab tab-active' : 'tab'}
+            onClick={() => selectTab('queue')}
+          >
+            Queue
+            {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
+          </button>
+        </div>
         <div className="two-col">
-          <NewOrderForm designs={activeDesigns} />
+          <div className={tab === 'new' ? undefined : 'pane-inactive'}>
+            <NewOrderForm designs={activeDesigns} />
+          </div>
 
-          <section>
+          <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
@@ -163,7 +198,10 @@ export function CashierPage() {
       <SoundGate />
       {cancelDialog}
       {overlay && (
-        <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => setOverlay(null)} />
+        <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => {
+          setOverlay(null);
+          selectTab('queue'); // hand-over is in the Queue; no-op on wide screens (both panes show)
+        }} />
       )}
     </div>
   );
@@ -181,7 +219,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
   const [staleNotice, setStaleNotice] = useState<string | null>(null); // stays until dismissed
 
-  const { colors, sizes } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
+  const { colors, sizes, colorLabel } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
   // A pick the event no longer offers (colours edited mid-draft) counts as unselected.
   const color = colors.some((c) => c.key === pickedColor) ? pickedColor : null;
   const size = sizes.find((s) => s === pickedSize) ?? null;
@@ -201,6 +239,12 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
 
   const canSubmit = color && size && !busy;
   const hint = sendHint(color, size);
+  const summary = orderSummary({
+    colorLabel: color ? colorLabel(color) : null,
+    size,
+    frontName: designs.find((d) => d.id === frontId)?.name ?? null,
+    backName: designs.find((d) => d.id === backId)?.name ?? null,
+  });
 
   const submit = async () => {
     if (!canSubmit || !activeEvent) return;
@@ -288,16 +332,10 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
           enterKeyHint="done"
           autoComplete="off"
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          style={{ width: '100%' }}
+          style={{ width: '100%', scrollMarginBottom: 160 }}
         />
       </div>
 
-      <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
-        {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
-      </button>
-      {hint && !busy && (
-        <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
-      )}
       {toast && <Toast message={toast.msg} tone={toast.tone} />}
       {staleNotice && (
         <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -305,6 +343,16 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
           <button className="btn btn-text" onClick={() => setStaleNotice(null)}>Dismiss</button>
         </div>
       )}
+
+      <div className="send-bar">
+        {summary && <div className="send-summary">{summary}</div>}
+        <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%' }}>
+          {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
+        </button>
+        {hint && !busy && (
+          <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
+        )}
+      </div>
     </section>
   );
 }

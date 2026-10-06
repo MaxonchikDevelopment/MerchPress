@@ -1283,3 +1283,23 @@ select {
   border-color: var(--accent);
   color: var(--accent-ink);
 }
+
+/* --------------------------------------------------------------------- */
+/* Update banner (new version ready, app busy)                           */
+/* --------------------------------------------------------------------- */
+.update-banner {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--sp-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100vw - 2 * var(--sp-4));
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-inner);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

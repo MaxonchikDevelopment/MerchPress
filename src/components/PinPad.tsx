@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { pinKeyAction } from '../lib/pinKey';
+import { useBusy } from '../hooks/useBusy';
 
 // 4-digit numeric pad. MVP-only auth — not strong security.
 export function PinPad({
@@ -12,6 +13,7 @@ export function PinPad({
   busy?: boolean;
 }) {
   const [pin, setPin] = useState('');
+  useBusy('pin', pin.length > 0); // digits typed: no automatic reload
 
   const push = (d: string) => {
     if (pin.length >= 4 || busy) return;

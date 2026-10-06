@@ -1,4 +1,6 @@
-// Muted build id at the very end of the scrolling page, so a phone's version can be read off the screen.
+import { formatBuildLabel } from '../lib/buildLabel';
+
+// Muted version and build id at the very end of the scrolling page, so a phone's version can be read off the screen.
 export function BuildTag() {
   return (
     <div
@@ -12,7 +14,7 @@ export function BuildTag() {
         userSelect: 'text',
       }}
     >
-      build {__BUILD_ID__}
+      {formatBuildLabel(__APP_VERSION__, __BUILD_ID__)}
     </div>
   );
 }

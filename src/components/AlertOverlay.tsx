@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useBusy } from '../hooks/useBusy';
 
 // Full-screen attention overlay shown when an order becomes ready for this
 // cashier. Big, tappable to dismiss. Dark scrim with a pulsing accent ring.
@@ -11,6 +12,7 @@ export function AlertOverlay({
   subtitle?: string;
   onDismiss: () => void;
 }) {
+  useBusy('alert'); // mounted = open: no automatic reload
   // Portalled to <body>, fixed to the viewport; the whole backdrop is the dismiss target.
   return createPortal(
     <div className="overlay" onClick={onDismiss} role="alertdialog" aria-label={title} style={{ flexDirection: 'column', textAlign: 'center' }}>

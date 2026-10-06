@@ -28,6 +28,7 @@ This docs commit also deletes `supabase/seed.sql` and rewrites README and the au
 | Branch | What |
 |---|---|
 | `gdansk-fix-1` | Wake lock re-acquires when the system releases it (stops after 3 quick failures until the next visibilitychange or a tap); state exposed via `useSyncExternalStore`; TopBar shows a "Screen may sleep" pill, tap to retry. No device test yet. |
+| `gdansk-fix-1` (R3) | Wake lock `pending` state, pill only on Press and Cashier; a losing Claim now shows "Already taken by <name>" and refetches (client-side `claimOrder`); concurrency live test `scripts/r3-livetest.mjs`, see `R3_REPORT.md`. |
 
 ## Deferred
 | Item | Why | Return condition |

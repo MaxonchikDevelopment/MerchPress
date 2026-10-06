@@ -152,10 +152,10 @@ function ColorToggles({
           key={c.key}
           onClick={() => onToggle(c.key)}
           aria-pressed={selected.includes(c.key)}
-          className={selected.includes(c.key) ? 'btn btn-selected' : 'btn'}
-          style={{ background: c.hex, color: c.text, border: '1px solid var(--border-strong)' }}
+          className={selected.includes(c.key) ? 'btn swatch swatch-selected' : 'btn swatch'}
+          style={{ background: c.hex, color: c.text }}
         >
-          {c.label}
+          {selected.includes(c.key) ? `✓ ${c.label}` : c.label}
         </button>
       ))}
       {orphans.map((k) => (

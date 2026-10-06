@@ -464,7 +464,7 @@ function NewOrderForm({
         )}
         {dimmed.length > 0 && (
           <div className="muted" style={{ marginTop: 'var(--sp-2)', fontSize: 14 }}>
-            Dimmed colours are not recommended for this print (still allowed)
+            Hatched colors are not recommended for this print (still allowed)
           </div>
         )}
       </div>

@@ -53,8 +53,8 @@
   --warn: #ff8a3d; /* orange, kept away from the yellow accent */
   --ok: #34d399;
 
-  /* ---- Dimmed (advisory) swatches in the colour picker ---- */
-  --dim-opacity: 0.45;
+  /* ---- Shirt colour swatches: their own edge, brighter than --border-strong ---- */
+  --swatch-edge: #707070;
 
   /* ---- Spacing scale (4px base) ---- */
   --sp-1: 4px;
@@ -250,6 +250,35 @@ button {
 
 .btn-selected {
   box-shadow: 0 0 0 4px var(--accent);
+}
+
+/* Shirt colour swatches (cashier ColorPicker, Admin Designs ColorToggles).
+   Face and label stay at full strength; advisory state is a dashed edge plus a hatch in the label colour. */
+.swatch {
+  position: relative;
+  min-width: 96px;
+  min-height: var(--touch-min);
+  border: 1px solid var(--swatch-edge);
+}
+.swatch-selected {
+  box-shadow: 0 0 0 3px var(--surface-card), 0 0 0 6px var(--accent);
+}
+.swatch-dim {
+  border: 2px dashed var(--warn);
+}
+.swatch-dim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0,
+    transparent 6px,
+    color-mix(in srgb, currentColor 30%, transparent) 6px,
+    color-mix(in srgb, currentColor 30%, transparent) 8px
+  );
 }
 
 /* --------------------------------------------------------------------- */

@@ -100,7 +100,7 @@ export function RoleSelect() {
 
             <div>
               <SectionLabel>Select your station</SectionLabel>
-              <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
                 {(['cashier', 'press', 'admin'] as UserRole[]).map((r) => (
                   <button key={r} className="btn btn-lg" onClick={() => setRole(r)} style={{ flexDirection: 'column', gap: 4, padding: 'var(--sp-4)' }}>
                     <span>{ROLE_LABELS[r]}</span>
@@ -118,7 +118,7 @@ export function RoleSelect() {
               <button className="btn" onClick={() => setRole(null)}>← Back</button>
               <SectionLabel style={{ margin: 0 }}>Who are you? · {ROLE_LABELS[role]}</SectionLabel>
             </div>
-            <div className="grid stagger" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="grid stagger" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
               {peopleForRole.map((p, i) => (
                 <button
                   key={p.id}

@@ -109,7 +109,7 @@ export function AdminStaffPage() {
 
       <section>
         <SectionLabel>Staff · {staff?.length ?? 0}</SectionLabel>
-        <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           {staff === null && <EmptyState><Spinner /> Loading…</EmptyState>}
           {staff?.map((p) => (
             <PersonRow

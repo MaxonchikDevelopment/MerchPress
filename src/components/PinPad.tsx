@@ -52,7 +52,7 @@ export function PinPad({
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
         {keys.map((k) => (
           <button key={k} className="btn btn-lg" onClick={() => push(k)} disabled={busy} aria-label={`Digit ${k}`}>
             {k}

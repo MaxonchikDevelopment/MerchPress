@@ -131,7 +131,7 @@ export function CashierPage() {
           <section>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
-            <div className="grid" style={{ gridTemplateColumns: '1fr', marginBottom: 'var(--sp-5)' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
               {myOpenOrders.map((o) => (
                 <OrderCard key={o.id} order={o} designs={designs}>
                   <button className="btn btn-text" onClick={() => askCancel(o)}>Cancel order</button>
@@ -140,7 +140,7 @@ export function CashierPage() {
               {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
             </div>
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
-            <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
               {readyOrders.map((o) => (
                 <OrderCard key={o.id} order={o} designs={designs} highlight={o.created_by === user?.id}>
                   <button

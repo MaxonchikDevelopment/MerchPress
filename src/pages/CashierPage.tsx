@@ -396,7 +396,7 @@ function NewOrderForm({
       {narrow && toastEl}
       {summary && <div className="send-summary">{summary}</div>}
       <div className="send-row">
-        <button className="btn btn-secondary btn-reset" disabled={!dirty || busy} onClick={clearDraft}>
+        <button className="btn btn-reset" disabled={!dirty || busy} onClick={clearDraft}>
           Reset
         </button>
         <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>

@@ -664,8 +664,10 @@ select:focus-visible {
 }
 .send-row .btn-reset {
   flex: none;
-  min-height: var(--touch-lg);
+  align-self: center;
+  min-height: var(--touch-min);
   font-size: 16px;
+  color: var(--text-secondary);
 }
 .send-row .btn-lg {
   flex: 1 1 0;
@@ -1397,9 +1399,13 @@ select {
   padding: var(--sp-2) var(--sp-4);
   border-radius: var(--r-inner);
   border: 1px solid var(--accent);
-  background: var(--accent-soft);
+  background: var(--surface-raised);
   color: var(--accent);
   font: inherit;
   font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }

@@ -198,7 +198,10 @@ export function CashierPage() {
       <SoundGate />
       {cancelDialog}
       {overlay && (
-        <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => setOverlay(null)} />
+        <AlertOverlay title={overlay.title} subtitle={overlay.subtitle} onDismiss={() => {
+          setOverlay(null);
+          selectTab('queue'); // hand-over is in the Queue; no-op on wide screens (both panes show)
+        }} />
       )}
     </div>
   );

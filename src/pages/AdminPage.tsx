@@ -4,6 +4,7 @@ import { AdminEventsPage } from './AdminEventsPage';
 import { AdminDesignsPage } from './AdminDesignsPage';
 import { AdminStaffPage } from './AdminStaffPage';
 import { StatsPage } from './StatsPage';
+import { BuildTag } from '../components/BuildTag';
 
 type Tab = 'events' | 'designs' | 'staff' | 'stats';
 
@@ -31,6 +32,7 @@ export function AdminPage() {
         {tab === 'designs' && <AdminDesignsPage />}
         {tab === 'staff' && <AdminStaffPage />}
         {tab === 'stats' && <StatsPage />}
+        <BuildTag />
       </div>
     </div>
   );

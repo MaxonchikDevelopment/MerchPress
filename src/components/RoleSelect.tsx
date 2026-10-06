@@ -9,6 +9,7 @@ import { PinPad } from './PinPad';
 import { SectionLabel } from './ui/SectionLabel';
 import { EmptyState } from './ui/EmptyState';
 import type { Staff, UserRole } from '../types/db';
+import { BuildTag } from './BuildTag';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   cashier: 'Cashier',
@@ -153,6 +154,7 @@ export function RoleSelect() {
             )}
           </>
         )}
+        <BuildTag />
       </div>
     </div>
   );

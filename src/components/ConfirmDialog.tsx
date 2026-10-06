@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { Spinner } from './ui/Spinner';
+import { useBusy } from '../hooks/useBusy';
 
 // Modal confirmation sized for touch. Tapping the scrim keeps things as they are.
 export function ConfirmDialog({
@@ -17,6 +18,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useBusy('confirm'); // mounted = open: no automatic reload
   // Portalled to <body>: no ancestor transform, animation or overflow can resize or move it.
   return createPortal(
     <div className="overlay" onClick={busy ? undefined : onCancel} role="alertdialog" aria-label={title}>

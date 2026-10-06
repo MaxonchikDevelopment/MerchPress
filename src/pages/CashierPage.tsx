@@ -16,6 +16,7 @@ import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
 import { NARROW_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCancelOrder } from '../hooks/useCancelOrder';
+import { useBusy } from '../hooks/useBusy';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
 import { DesignPicker, ChosenPrint } from '../components/DesignPicker';
@@ -325,6 +326,9 @@ function NewOrderForm({
   const dirty = Boolean(
     pickedColor || pickedSize || pickedFront || pickedBack || clientName || colorNote || chosen.bundle || chosen.front || chosen.back,
   );
+
+  useBusy('draft', dirty); // same condition that enables Reset: no automatic reload
+  useBusy('sending', busy);
 
   const canSubmit = color && size && !busy;
   const hint = sendHint(color, size);

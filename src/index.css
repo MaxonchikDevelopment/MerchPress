@@ -292,7 +292,10 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  /* Keeps at least 64 px for the title so the group never wraps to a second row */
+  max-width: calc(100% - 76px);
 }
 /* Compact action button: 44 px icon button on phones, icon plus label from 900 px */
 .btn-bar {
@@ -307,7 +310,24 @@ select:focus-visible {
 .user-menu {
   position: relative;
 }
+/* Phone-only short hint on the wake lock button; one line, ellipsis when space is tight */
+.btn-wake {
+  min-width: 48px;
+  overflow: hidden;
+}
+.lbl-phone {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.user-chip {
+  flex-shrink: 4;
+  min-width: 0;
+}
 .user-chip-name {
+  min-width: 3ch;
   max-width: 88px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -392,6 +412,13 @@ select:focus-visible {
   }
   .lbl {
     display: inline;
+  }
+  .lbl-phone {
+    display: none;
+  }
+  .topbar-actions {
+    flex-shrink: 0;
+    max-width: none;
   }
   .btn-bar {
     padding: 0 var(--sp-4);

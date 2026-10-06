@@ -22,8 +22,17 @@ export function TopBar({
       </div>
       <div className="row">
         {soundRetry && <SoundRetryButton />}
-        {user && wakeState !== 'held' && (
-          <button className="pill" onClick={retryWakeLock} style={{ cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }} title="The screen is not being kept awake. Tap to retry.">
+        {soundRetry && user && (wakeState === 'released' || wakeState === 'unsupported') && (
+          <button
+            className="pill"
+            onClick={retryWakeLock}
+            style={{ cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
+            title={
+              wakeState === 'unsupported'
+                ? 'This browser cannot keep the screen on. Set Auto-Lock to Never.'
+                : 'The screen is not being kept awake. Tap to retry.'
+            }
+          >
             <span aria-hidden="true">💤</span> Screen may sleep
           </button>
         )}

@@ -4,15 +4,16 @@ import { useEffect } from 'react';
 // no sound). Re-acquires when the tab becomes visible again and when the system
 // releases the lock itself. No-op where unsupported.
 
-// 'unsupported': no Wake Lock API. 'held': we own a live sentinel. 'released':
-// supported but nothing held (never acquired, denied, or released by the system).
-export type WakeLockState = 'unsupported' | 'held' | 'released';
+// 'unsupported': no Wake Lock API. 'pending': supported, first acquire attempt not
+// resolved yet (the UI shows nothing). 'held': we own a live sentinel. 'released':
+// supported but nothing held (denied, or released by the system).
+export type WakeLockState = 'unsupported' | 'pending' | 'held' | 'released';
 
 const MAX_FAILURES = 3; // consecutive failed re-acquires before waiting for a visibilitychange or a tap
 const MIN_HELD_MS = 10_000; // a lock that dies sooner than this counts as a failure
 
 let wakeState: WakeLockState =
-  typeof navigator !== 'undefined' && 'wakeLock' in navigator ? 'released' : 'unsupported';
+  typeof navigator !== 'undefined' && 'wakeLock' in navigator ? 'pending' : 'unsupported';
 const listeners = new Set<() => void>();
 let retry: (() => void) | null = null;
 
@@ -59,6 +60,7 @@ export function useWakeLock() {
         return true;
       } catch {
         /* denied / unsupported — fine */
+        if (wakeState === 'pending') setWakeState('released'); // first attempt resolved
         return false;
       } finally {
         busy = false;

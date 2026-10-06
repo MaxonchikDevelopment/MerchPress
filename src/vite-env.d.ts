@@ -12,3 +12,5 @@ interface ImportMeta {
 
 // Injected by vite.config.ts `define`: first 7 characters of the commit, or "dev".
 declare const __BUILD_ID__: string;
+// Injected by vite.config.ts `define`: the "version" field of package.json, or "" if unreadable.
+declare const __APP_VERSION__: string;

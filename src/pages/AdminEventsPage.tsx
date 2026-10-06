@@ -19,6 +19,7 @@ export function AdminEventsPage() {
   const [date, setDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
   const [switchTo, setSwitchTo] = useState<EventRow | null>(null);
@@ -36,6 +37,7 @@ export function AdminEventsPage() {
     setLocation('');
     setDate('');
     setEndDate('');
+    setCreating(false);
   };
 
   const activate = async (id: string) => {
@@ -61,50 +63,57 @@ export function AdminEventsPage() {
 
   return (
     <div className="grid" style={{ gap: 'var(--sp-5)' }}>
-      <section className="card grid">
-        <h2 style={{ margin: 0 }}>New event</h2>
-        <div>
-          <SectionLabel>Event name</SectionLabel>
-          <input placeholder="e.g. Hyrox Gdansk" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
-        </div>
-        <div>
-          <SectionLabel>Location (optional)</SectionLabel>
-          <input placeholder="Venue / city" value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%' }} />
-        </div>
-        <div>
-          <SectionLabel>Start date (optional)</SectionLabel>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
-              if (!e.target.value) setEndDate('');
-            }}
-            style={{ width: '100%' }}
-            aria-label="Start date"
-          />
-        </div>
-        <div>
-          <SectionLabel>End date (optional)</SectionLabel>
-          <input
-            type="date"
-            value={endDate}
-            min={date || undefined}
-            disabled={!date}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ width: '100%' }}
-            aria-label="End date"
-          />
-        </div>
-        {createError && <Toast message={createError} tone="error" />}
-        <button className="btn btn-primary" onClick={create} disabled={!name.trim() || busy}>
-          {busy ? <><Spinner /> Creating…</> : 'Create event'}
-        </button>
-      </section>
-
       <section>
         {error && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={error} tone="error" /></div>}
-        <SectionLabel>Events · {events.length}</SectionLabel>
+        <div className="row" style={{ marginBottom: 'var(--sp-3)' }}>
+          <SectionLabel style={{ margin: 0 }}>Events · {events.length}</SectionLabel>
+          <div className="spacer" />
+          <button className="btn btn-secondary" onClick={() => setCreating((c) => !c)} aria-expanded={creating}>
+            {creating ? 'Close' : 'New event'}
+          </button>
+        </div>
+        {creating && (
+          <section className="card grid" style={{ marginBottom: 'var(--sp-4)' }}>
+            <h2 style={{ margin: 0 }}>New event</h2>
+            <div>
+              <SectionLabel>Event name</SectionLabel>
+              <input placeholder="e.g. Hyrox Gdansk" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <SectionLabel>Location (optional)</SectionLabel>
+              <input placeholder="Venue / city" value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <SectionLabel>Start date (optional)</SectionLabel>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  if (!e.target.value) setEndDate('');
+                }}
+                style={{ width: '100%' }}
+                aria-label="Start date"
+              />
+            </div>
+            <div>
+              <SectionLabel>End date (optional)</SectionLabel>
+              <input
+                type="date"
+                value={endDate}
+                min={date || undefined}
+                disabled={!date}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{ width: '100%' }}
+                aria-label="End date"
+              />
+            </div>
+            {createError && <Toast message={createError} tone="error" />}
+            <button className="btn btn-primary" onClick={create} disabled={!name.trim() || busy}>
+              {busy ? <><Spinner /> Creating…</> : 'Create event'}
+            </button>
+          </section>
+        )}
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           {events.map((e) => (
             <div key={e.id} className="grid" style={{ gap: 'var(--sp-3)' }}>

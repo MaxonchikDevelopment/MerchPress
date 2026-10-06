@@ -673,6 +673,43 @@ h2 {
   font-weight: 600;
 }
 
+/* Order card type scale: number 32, chips 16 (status, colour, size, client), secondary 14 */
+.order-card {
+  --thumb: 84px;
+}
+.order-no {
+  font-size: 32px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.order-card .badge,
+.order-card .pill {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+  min-height: 40px;
+  padding: 0 var(--sp-3);
+}
+.order-secondary {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.order-secondary strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.order-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+}
+@media (max-width: 899.98px) {
+  .order-card {
+    --thumb: 120px;
+  }
+}
+
 /* --------------------------------------------------------------------- */
 /* Overlays: portalled to <body>, fixed to the viewport, above .top-block (z 10) */
 /* --------------------------------------------------------------------- */

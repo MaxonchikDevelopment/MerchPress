@@ -3,6 +3,7 @@ import { designPhotoUrl } from '../lib/supabase';
 import { initials } from '../lib/initials';
 import { useSession } from '../context/SessionContext';
 import { eventOptions } from '../lib/eventOptions';
+import { useStaffName } from '../lib/staffNames';
 import type { Design, Order } from '../types/db';
 import { StatusBadge } from './StatusBadge';
 import { WaitTimer } from './WaitTimer';
@@ -34,7 +35,8 @@ function DesignThumb({ design, side }: { design: Design | undefined; side: 'fron
               alt={`${side} — ${design.name}`}
               loading="lazy"
               onError={() => setFailed(true)}
-              style={{ display: 'block', width: 84, height: 84, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }}
+              className="order-thumb"
+              style={{ display: 'block', objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }}
             />
           </button>
           {zoomed && <ImageLightbox src={url} alt={`${side} — ${design.name}`} onClose={() => setZoomed(false)} />}
@@ -42,9 +44,8 @@ function DesignThumb({ design, side }: { design: Design | undefined; side: 'fron
       ) : (
         <div
           aria-label={`${design.name} (no ${side} photo)`}
+          className="order-thumb"
           style={{
-            width: 84,
-            height: 84,
             borderRadius: 'var(--r-inner)',
             background: 'var(--surface-raised)',
             border: '1px solid var(--border-subtle)',
@@ -59,7 +60,7 @@ function DesignThumb({ design, side }: { design: Design | undefined; side: 'fron
           {initials(design.name)}
         </div>
       )}
-      <div style={{ fontSize: 12, marginTop: 4, color: 'var(--text-secondary)' }}>
+      <div className="order-secondary" style={{ marginTop: 4 }}>
         {side}: {design.name}
       </div>
     </div>
@@ -73,6 +74,7 @@ export function OrderCard({
   showWait,
   edgeColor,
   alert,
+  showClaimedBy,
   children,
 }: {
   order: Order;
@@ -81,6 +83,7 @@ export function OrderCard({
   showWait?: boolean;
   edgeColor?: string; // left-edge status accent (press queue)
   alert?: boolean; // pulse to escalate (overdue)
+  showClaimedBy?: boolean; // Press: name the person who claimed an in-progress order
   children?: ReactNode;
 }) {
   // Press and Cashier only list orders of the active event.
@@ -88,10 +91,11 @@ export function OrderCard({
   const { colorLabel } = eventOptions(activeEvent);
   const front = designs.find((d) => d.id === order.design_front_id);
   const back = designs.find((d) => d.id === order.design_back_id);
+  const claimedByName = useStaffName(showClaimedBy && order.status === 'in_progress' ? order.claimed_by : null);
 
   return (
     <div
-      className={`card${alert ? ' pulse-danger' : ''}`}
+      className={`card order-card${alert ? ' pulse-danger' : ''}`}
       style={{
         boxShadow: highlight ? '0 0 0 2px var(--accent), var(--shadow-card)' : undefined,
         borderLeft: edgeColor ? `4px solid ${edgeColor}` : undefined,
@@ -101,9 +105,7 @@ export function OrderCard({
       }}
     >
       <div className="row">
-        <div style={{ fontSize: 32, fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
-          #{order.event_order_no}
-        </div>
+        <div className="order-no">#{order.event_order_no}</div>
         <StatusBadge status={order.status} />
         {highlight && (
           <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
@@ -126,10 +128,15 @@ export function OrderCard({
         {order.client_name && <span className="pill"><span aria-hidden="true">👤</span> {order.client_name}</span>}
       </div>
 
-      <div className="muted" style={{ fontSize: 13 }}>
+      <div className="order-secondary">
         Cashier: {order.cashier_name ?? '—'}
-        {order.claimed_by ? ' · claimed' : ''}
+        {order.claimed_by && !showClaimedBy ? ' · claimed' : ''}
       </div>
+      {showClaimedBy && order.status === 'in_progress' && order.claimed_by && (
+        <div className="order-secondary">
+          {claimedByName ? <>Claimed by <strong>{claimedByName}</strong></> : 'Claimed'}
+        </div>
+      )}
 
       {children}
     </div>

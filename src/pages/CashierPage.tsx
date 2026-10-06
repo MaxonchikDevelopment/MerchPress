@@ -235,6 +235,7 @@ function NewOrderForm({
   const [pickedFront, setFrontId] = useState<string | null>(null);
   const [pickedBack, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
+  const [colorNote, setColorNote] = useState<string | null>(null); // bundle cleared the colour; stays until the next colour pick or print change
   const [busy, setBusy] = useState(false);
   const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
@@ -270,11 +271,18 @@ function NewOrderForm({
       picked: color,
     });
     if (next.resetColor) setColor(null);
+    const name = designs.find((d) => d.id === id)?.name;
+    setColorNote(next.resetColor && name ? `Colour cleared: not available for ${name}` : null);
+  };
+  const pickColor = (key: string) => {
+    setColor(key);
+    setColorNote(null);
   };
   // Switching mode clears the print only; colour, size and name stay (nothing is chosen, so the colour stays valid).
   const switchMode = (m: PrintMode) => {
     if (m === mode) return;
     setMode(m);
+    setColorNote(null);
     setFrontId(null);
     setBackId(null);
   };
@@ -337,6 +345,7 @@ function NewOrderForm({
     setStaleNotice(null);
     setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
     setColor(null);
+    setColorNote(null);
     setSize(null);
     setFrontId(null);
     setBackId(null);
@@ -365,7 +374,17 @@ function NewOrderForm({
 
       <div>
         <SectionLabel>Shirt color</SectionLabel>
-        <ColorPicker colors={visibleColors} value={color} onChange={setColor} dimmed={dimmed} />
+        <ColorPicker colors={visibleColors} value={color} onChange={pickColor} dimmed={dimmed} />
+        {colorNote && (
+          <div role="status" style={{ marginTop: 'var(--sp-2)', fontSize: 14, fontWeight: 600, color: 'var(--warn)' }}>
+            {colorNote}
+          </div>
+        )}
+        {dimmed.length > 0 && (
+          <div className="muted" style={{ marginTop: 'var(--sp-2)', fontSize: 14 }}>
+            Dimmed colours are not recommended for this print (still allowed)
+          </div>
+        )}
       </div>
       <div>
         <SectionLabel>Size</SectionLabel>
@@ -410,9 +429,15 @@ function NewOrderForm({
           onChange={(e) => setClientName(e.target.value)}
           placeholder="e.g. Anna"
           aria-label="Client name (optional)"
+          type="text"
+          name="order-label"
           inputMode="text"
           enterKeyHint="done"
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck={false}
+          data-form-type="other"
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           style={{ width: '100%', scrollMarginBottom: 160 }}
         />

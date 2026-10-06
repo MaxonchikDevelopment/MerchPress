@@ -72,7 +72,7 @@ export function AdminEventsPage() {
   return (
     <div className="grid" style={{ gap: 'var(--sp-5)' }}>
       <section>
-        {error && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={error} tone="error" /></div>}
+        {error && <div className="toast-sticky" style={{ marginBottom: 'var(--sp-3)' }}><Toast message={error} tone="error" /></div>}
         <div className="row" style={{ marginBottom: 'var(--sp-3)' }}>
           <SectionLabel style={{ margin: 0 }}>Events · {events.length}</SectionLabel>
           <div className="spacer" />

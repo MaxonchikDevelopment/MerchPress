@@ -212,7 +212,18 @@ button {
   font-size: 14px;
   padding: 0 var(--sp-2);
 }
-.btn-text:hover {
+@media (hover: hover) {
+  .btn-text:hover {
+    color: var(--text-primary);
+  }
+  .btn-text-danger:hover {
+    color: var(--danger-text);
+  }
+}
+.btn-text:active {
+  color: var(--text-primary);
+}
+.btn-text-danger:active {
   color: var(--danger-text);
 }
 
@@ -222,7 +233,12 @@ button {
   border-color: var(--danger);
   color: var(--danger-text);
 }
-.btn-danger-outline:not(:disabled):hover {
+@media (hover: hover) {
+  .btn-danger-outline:not(:disabled):hover {
+    background: var(--danger-soft);
+  }
+}
+.btn-danger-outline:not(:disabled):active {
   background: var(--danger-soft);
 }
 
@@ -683,11 +699,11 @@ h2 {
 
 /* Maxona section-heading idiom — quiet uppercase label */
 .label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin-bottom: var(--sp-2);
 }
 
@@ -1063,6 +1079,27 @@ h2 {
 .name-grid > :last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
+/* Cashier Bundle tiles: 160 px minimum as before; two per row on phones (284 px fits a 288 px card). */
+.design-grid-bundle {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+@media (max-width: 599px) {
+  .design-grid-bundle {
+    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+    --tile-h: 96px;
+  }
+}
+/* PIN step: who is signing in, same 300 px column as the pad */
+.pin-who {
+  max-width: 300px;
+  margin: 0 auto var(--sp-3);
+  text-align: center;
+}
+.pin-who h2 {
+  margin: 0;
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
 .who-heading {
   margin-bottom: var(--sp-4);
 }
@@ -1262,6 +1299,14 @@ select {
 }
 .compat-cell:active {
   transform: scale(0.95);
+}
+/* Admin error toasts live in the page, inside the scroller: stick to its top edge. Opaque backing, the toast tint is translucent. */
+.toast-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: var(--sp-2) 0;
+  background: var(--surface-page);
 }
 .compat-toast {
   position: sticky;

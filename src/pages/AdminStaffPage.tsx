@@ -125,7 +125,7 @@ export function AdminStaffPage() {
 
   return (
     <div className="grid" style={{ gap: 'var(--sp-5)' }}>
-      {error && <Toast message={error} tone="error" />}
+      {error && <div className="toast-sticky"><Toast message={error} tone="error" /></div>}
       <AddPerson onCreate={(name, role, pin) => act((id, ap) => staffCreate(id, ap, name, role, pin))} />
 
       <section>

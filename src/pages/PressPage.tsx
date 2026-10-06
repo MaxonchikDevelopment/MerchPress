@@ -129,21 +129,20 @@ export function PressPage() {
       <TopBlock>
         <TopBar title="Press queue" soundRetry />
         <OfflineBanner connected={connected} />
+        {(toast || notices.length > 0) && (
+          <div className="top-notices">
+            {toast && <Toast message={toast} tone="error" />}
+            {notices.map((n) => (
+              <div key={n.key} className="toast toast-error toast-notice" role="status" style={{ justifyContent: 'space-between' }}>
+                <span>{n.text}</span>
+                <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
+                <span className="notice-bar" aria-hidden="true" style={{ animationDuration: `${NOTICE_MS}ms` }} />
+              </div>
+            ))}
+          </div>
+        )}
       </TopBlock>
       <div className="content">
-        {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
-        {notices.map((n) => (
-          <div
-            key={n.key}
-            className="toast toast-error toast-notice"
-            role="status"
-            style={{ marginBottom: 'var(--sp-3)', justifyContent: 'space-between' }}
-          >
-            <span>{n.text}</span>
-            <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
-            <span className="notice-bar" aria-hidden="true" style={{ animationDuration: `${NOTICE_MS}ms` }} />
-          </div>
-        ))}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
           {queue.length} in queue
         </div>
@@ -170,7 +169,7 @@ export function PressPage() {
                     {busy ? <><Spinner /> …</> : '✓ Ready'}
                   </button>
                 )}
-                <button className="btn btn-text" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
+                <button className="btn btn-text btn-text-danger" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
               </OrderCard>
             );
           })}

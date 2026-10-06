@@ -144,9 +144,12 @@ export function RoleSelect() {
 
         {picked && (
           <>
-            <div className="row" style={{ marginBottom: 'var(--sp-4)' }}>
+            <div style={{ marginBottom: 'var(--sp-4)' }}>
               <button className="btn" onClick={() => { setPicked(null); setRole(null); setError(null); }}>← Back</button>
-              <SectionLabel style={{ margin: 0 }}>Enter PIN · {picked.name}</SectionLabel>
+            </div>
+            <div className="pin-who">
+              <h2>{picked.name}</h2>
+              <div className="muted">Enter PIN</div>
             </div>
             <PinPad onSubmit={handlePin} error={error} busy={busy} />
             {DEV_LOGIN && (

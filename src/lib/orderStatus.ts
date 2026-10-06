@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Order, OrderStatus } from '../types/db';
+import { classifyClaim, type ClaimResult } from './claimResult';
 
 const TIMEOUT_MS = 10_000;
 
@@ -34,6 +35,26 @@ export async function setOrderStatus(
   userId: string | undefined,
 ): Promise<boolean> {
   return (await callSetOrderStatus(orderId, status, userId)) !== null;
+}
+
+export type { ClaimResult };
+
+// Claim an order for userId. 'claimed' also covers a safe retry of an aborted
+// call that actually landed (same claimed_by).
+export async function claimOrder(orderId: string, userId: string | undefined): Promise<ClaimResult> {
+  return classifyClaim(await callSetOrderStatus(orderId, 'in_progress', userId), userId);
+}
+
+// Name of a staff member, looked up only after a lost claim. Null on any failure.
+export async function staffName(id: string | null): Promise<string | null> {
+  if (!id) return null;
+  try {
+    const { data, error } = await supabase.from('staff_v').select('name').eq('id', id).maybeSingle();
+    if (error) return null;
+    return (data as { name: string } | null)?.name ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export type CancelResult = 'cancelled' | 'already_closed' | 'failed';

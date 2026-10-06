@@ -1,6 +1,6 @@
 # Phase Summary: Gdansk (10-11 Oct 2026)
 
-Branch `gdansk-sprint`, not merged, not pushed.
+Branch `gdansk-sprint` was merged into `main` at aa2105f and deployed by Vercel.
 
 ## Shipped
 | Commit | What |
@@ -23,6 +23,12 @@ Branch `gdansk-sprint`, not merged, not pushed.
 | a01dabc | Wording, dead code removal, R2C live test and report |
 
 This docs commit also deletes `supabase/seed.sql` and rewrites README and the audit docs.
+
+## Post-merge fixes
+| Branch | What |
+|---|---|
+| `gdansk-fix-1` | Wake lock re-acquires when the system releases it (stops after 3 quick failures until the next visibilitychange or a tap); state exposed via `useSyncExternalStore`; TopBar shows a "Screen may sleep" pill, tap to retry. No device test yet. |
+| `gdansk-fix-1` (R3) | Wake lock `pending` state, pill only on Press and Cashier; a losing Claim now shows "Already taken by <name>" and refetches (client-side `claimOrder`); concurrency live test `scripts/r3-livetest.mjs`, see `R3_REPORT.md`. |
 
 ## Deferred
 | Item | Why | Return condition |

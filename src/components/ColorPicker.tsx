@@ -4,18 +4,18 @@ export function ColorPicker({
   colors,
   value,
   onChange,
-  allowed,
+  dimmed = [],
 }: {
   colors: EffectiveColor[];
   value: string | null;
   onChange: (key: string) => void;
-  allowed?: string[]; // advisory: non-allowed colors are dimmed but still selectable
+  dimmed?: string[]; // advisory (custom print): dimmed but still selectable. Callers hide colours by omitting them from `colors`.
 }) {
   return (
     <div className="row" role="group" aria-label="Shirt color">
       {colors.map((c) => {
         const selected = value === c.key;
-        const dim = allowed && allowed.length > 0 && !allowed.includes(c.key);
+        const dim = dimmed.includes(c.key);
         return (
           <button
             key={c.key}

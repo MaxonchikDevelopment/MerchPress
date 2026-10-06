@@ -7,6 +7,7 @@ import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
 import { sendHint } from '../lib/sendHint';
+import { printColors, type PrintMode } from '../lib/printColors';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
@@ -14,7 +15,7 @@ import { NARROW_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCancelOrder } from '../hooks/useCancelOrder';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
-import { DesignPicker } from '../components/DesignPicker';
+import { DesignPicker, BundlePreview } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
 import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
@@ -230,6 +231,7 @@ function NewOrderForm({
   const narrow = useMediaQuery(NARROW_QUERY);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<ShirtSize | null>(null);
+  const [mode, setMode] = useState<PrintMode>('bundle');
   const [pickedFront, setFrontId] = useState<string | null>(null);
   const [pickedBack, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
@@ -247,14 +249,35 @@ function NewOrderForm({
   const frontId = designs.some((d) => d.id === pickedFront) ? pickedFront : null;
   const backId = designs.some((d) => d.id === pickedBack) ? pickedBack : null;
 
-  const allowedColors = useMemo(() => {
-    const chosen = designs.filter((d) => d.id === frontId || d.id === backId);
-    if (chosen.length === 0) return undefined;
-    // intersection of compatible colors across chosen designs
-    return chosen
-      .map((d) => d.compatible_colors)
-      .reduce((acc, cur) => acc.filter((c) => cur.includes(c)));
-  }, [designs, frontId, backId]);
+  const chosenDesigns = useMemo(() => designs.filter((d) => d.id === frontId || d.id === backId), [designs, frontId, backId]);
+  const { visible, dimmed } = printColors({
+    mode,
+    chosen: chosenDesigns,
+    colorKeys: colors.map((c) => c.key),
+    picked: color,
+  });
+  const visibleColors = colors.filter((c) => visible.includes(c.key));
+  const bundle = mode === 'bundle' ? designs.find((d) => d.id === frontId) ?? null : null;
+
+  // Bundle: one design on both sides. Colours it does not fit are hidden, so a picked one is cleared.
+  const pickBundle = (id: string | null) => {
+    setFrontId(id);
+    setBackId(id);
+    const next = printColors({
+      mode,
+      chosen: designs.filter((d) => d.id === id),
+      colorKeys: colors.map((c) => c.key),
+      picked: color,
+    });
+    if (next.resetColor) setColor(null);
+  };
+  // Switching mode clears the print only; colour, size and name stay (nothing is chosen, so the colour stays valid).
+  const switchMode = (m: PrintMode) => {
+    if (m === mode) return;
+    setMode(m);
+    setFrontId(null);
+    setBackId(null);
+  };
 
   const canSubmit = color && size && !busy;
   const hint = sendHint(color, size);
@@ -263,6 +286,7 @@ function NewOrderForm({
     size,
     frontName: designs.find((d) => d.id === frontId)?.name ?? null,
     backName: designs.find((d) => d.id === backId)?.name ?? null,
+    bundleName: bundle?.name ?? null,
   });
 
   const submit = async () => {
@@ -341,20 +365,44 @@ function NewOrderForm({
 
       <div>
         <SectionLabel>Shirt color</SectionLabel>
-        <ColorPicker colors={colors} value={color} onChange={setColor} allowed={allowedColors} />
+        <ColorPicker colors={visibleColors} value={color} onChange={setColor} dimmed={dimmed} />
       </div>
       <div>
         <SectionLabel>Size</SectionLabel>
         <SizePicker sizes={sizes} value={size} onChange={setSize} />
       </div>
       <div>
-        <SectionLabel>Front print</SectionLabel>
-        <DesignPicker designs={designs} side="front" value={frontId} onChange={setFrontId} />
+        <SectionLabel>Print</SectionLabel>
+        <div className="print-mode" role="group" aria-label="Print mode">
+          {(['bundle', 'custom'] as const).map((m) => (
+            <button
+              key={m}
+              aria-pressed={mode === m}
+              className={mode === m ? 'tab tab-active' : 'tab'}
+              onClick={() => switchMode(m)}
+            >
+              {m === 'bundle' ? 'Bundle' : 'Custom print'}
+            </button>
+          ))}
+        </div>
       </div>
-      <div>
-        <SectionLabel>Back print</SectionLabel>
-        <DesignPicker designs={designs} side="back" value={backId} onChange={setBackId} />
-      </div>
+      {mode === 'bundle' ? (
+        <div className="grid" style={{ gap: 'var(--sp-3)' }}>
+          <DesignPicker designs={designs} side="bundle" value={frontId} onChange={pickBundle} />
+          {bundle && <BundlePreview design={bundle} />}
+        </div>
+      ) : (
+        <>
+          <div>
+            <SectionLabel>Front print</SectionLabel>
+            <DesignPicker designs={designs} side="front" value={frontId} onChange={setFrontId} />
+          </div>
+          <div>
+            <SectionLabel>Back print</SectionLabel>
+            <DesignPicker designs={designs} side="back" value={backId} onChange={setBackId} />
+          </div>
+        </>
+      )}
       <div>
         <SectionLabel>Client name (optional)</SectionLabel>
         <input

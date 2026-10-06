@@ -22,16 +22,17 @@ export function DesignPicker({
     <div
       role="group"
       aria-label={side === 'bundle' ? 'bundle print' : `${side} print`}
+      className={side === 'bundle' ? 'design-grid-bundle' : undefined}
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(auto-fill, minmax(${side === 'bundle' ? 160 : 120}px, 1fr))`,
+        ...(side === 'bundle' ? {} : { gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }),
         gap: 12,
       }}
     >
       <Tile selected={value === null} onClick={() => onChange(null)}>
         <div
           style={{
-            height: 120,
+            height: 'var(--tile-h, 120px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -64,7 +65,7 @@ export function DesignPicker({
   );
 }
 
-function TileImage({ url, name, height = 120 }: { url: string | null; name: string; height?: number }) {
+function TileImage({ url, name, height = 'var(--tile-h, 120px)' }: { url: string | null; name: string; height?: number | string }) {
   const [failed, setFailed] = useState(false);
   if (url && !failed) {
     return (

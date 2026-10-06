@@ -1,18 +1,19 @@
 // Minimal client-side CSV builder + download (no deps).
 
-function escape(value: unknown): string {
+function escape(value: unknown, separator: string): string {
   if (value === null || value === undefined) return '';
   const s = String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return s.includes(separator) || /["\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export function toCsv<T extends Record<string, unknown>>(
   rows: T[],
   columns: { key: keyof T; header: string }[],
+  separator = ',',
 ): string {
-  const head = columns.map((c) => escape(c.header)).join(',');
+  const head = columns.map((c) => escape(c.header, separator)).join(separator);
   const body = rows
-    .map((row) => columns.map((c) => escape(row[c.key])).join(','))
+    .map((row) => columns.map((c) => escape(row[c.key], separator)).join(separator))
     .join('\n');
   return `${head}\n${body}`;
 }

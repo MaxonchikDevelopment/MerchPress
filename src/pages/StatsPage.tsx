@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { toCsv, downloadCsv } from '../lib/csv';
 import { eventOptions } from '../lib/eventOptions';
+import { eventDay, formatEventTime } from '../lib/eventTime';
+import { printMode } from '../lib/printMode';
+import { STATUS_COLORS } from '../lib/colors';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -72,34 +75,41 @@ export function StatsPage() {
   const exportCsv = () => {
     const rows = orders.map((o) => ({
       order_no: o.event_order_no,
-      created_at: o.created_at,
-      status: o.status,
+      created_at: formatEventTime(o.created_at),
+      status: STATUS_COLORS[o.status].label,
       color: colorLabel(o.shirt_color),
       size: o.shirt_size,
       front: designName(o.design_front_id),
       back: designName(o.design_back_id),
+      print_mode: printMode(o.design_front_id, o.design_back_id),
       client: o.client_name ?? '',
       cashier: o.cashier_name ?? '',
-      ready_at: o.ready_at ?? '',
-      completed_at: o.completed_at ?? '',
-      cancelled_at: o.cancelled_at ?? '',
+      ready_at: formatEventTime(o.ready_at),
+      completed_at: formatEventTime(o.completed_at),
+      cancelled_at: formatEventTime(o.cancelled_at),
     }));
-    const csv = toCsv(rows, [
-      { key: 'order_no', header: 'Order #' },
-      { key: 'created_at', header: 'Created' },
-      { key: 'status', header: 'Status' },
-      { key: 'color', header: 'Color' },
-      { key: 'size', header: 'Size' },
-      { key: 'front', header: 'Front' },
-      { key: 'back', header: 'Back' },
-      { key: 'client', header: 'Client' },
-      { key: 'cashier', header: 'Cashier' },
-      { key: 'ready_at', header: 'Ready at' },
-      { key: 'completed_at', header: 'Completed at' },
-      { key: 'cancelled_at', header: 'cancelled_at' },
-    ]);
+    // Semicolon: matches the iPOS exports and opens in Polish and German Excel.
+    const csv = toCsv(
+      rows,
+      [
+        { key: 'order_no', header: 'Order #' },
+        { key: 'created_at', header: 'Created' },
+        { key: 'status', header: 'Status' },
+        { key: 'color', header: 'Color' },
+        { key: 'size', header: 'Size' },
+        { key: 'front', header: 'Front' },
+        { key: 'back', header: 'Back' },
+        { key: 'print_mode', header: 'Print mode' },
+        { key: 'client', header: 'Client' },
+        { key: 'cashier', header: 'Cashier' },
+        { key: 'ready_at', header: 'Ready at' },
+        { key: 'completed_at', header: 'Completed at' },
+        { key: 'cancelled_at', header: 'Cancelled at' },
+      ],
+      ';',
+    );
     const ev = events.find((e) => e.id === eventId)?.name ?? 'event';
-    downloadCsv(`merchpress-${ev}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    downloadCsv(`merchpress-${ev}-${eventDay(new Date().toISOString())}.csv`, csv);
   };
 
   return (

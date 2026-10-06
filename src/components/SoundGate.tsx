@@ -38,8 +38,9 @@ export function SoundRetryButton() {
   const dismissed = useSyncExternalStore(subscribeAudioState, getGateDismissed);
   if (state !== 'locked' || !dismissed) return null;
   return (
-    <button className="btn" onClick={unlockAudio}>
-      🔕 Sound off · tap to retry
+    <button className="btn btn-bar" onClick={unlockAudio} aria-label="Sound off, tap to retry">
+      <span aria-hidden="true">🔕</span>
+      <span className="lbl">Sound off · tap to retry</span>
     </button>
   );
 }

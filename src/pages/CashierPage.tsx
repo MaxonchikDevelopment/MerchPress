@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { readyBadgeCount } from '../lib/readyBadge';
 import { orderSummary } from '../lib/orderSummary';
 import { eventOptions } from '../lib/eventOptions';
@@ -9,6 +10,7 @@ import { sendHint } from '../lib/sendHint';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
+import { NARROW_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCancelOrder } from '../hooks/useCancelOrder';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
@@ -16,7 +18,7 @@ import { DesignPicker } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
 import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
-import { TopBar, OfflineBanner } from '../components/TopBar';
+import { TopBar, TopBlock, OfflineBanner } from '../components/TopBar';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Toast } from '../components/ui/Toast';
@@ -39,6 +41,7 @@ export function CashierPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [tab, setTab] = useState<CashierTab>('new');
   const contentRef = useRef<HTMLDivElement>(null);
+  const [footerSlot, setFooterSlot] = useState<HTMLElement | null>(null); // phone bottom bar target
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const onReady = useCallback(
@@ -130,7 +133,7 @@ export function CashierPage() {
   if (!activeEvent) {
     return (
       <div className="app">
-        <TopBar title="Cashier" />
+        <TopBlock><TopBar title="Cashier" /></TopBlock>
         <div className="content"><EmptyState>No active event. Ask an admin to activate one.</EmptyState></div>
       </div>
     );
@@ -138,9 +141,9 @@ export function CashierPage() {
 
   return (
     <div className="app">
-      <TopBar title="Cashier" soundRetry />
-      <OfflineBanner connected={connected} />
-      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <TopBlock>
+        <TopBar title="Cashier" soundRetry />
+        <OfflineBanner connected={connected} />
         <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
           <button
             role="tab"
@@ -160,9 +163,11 @@ export function CashierPage() {
             {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
           </button>
         </div>
+      </TopBlock>
+      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">
           <div className={tab === 'new' ? undefined : 'pane-inactive'}>
-            <NewOrderForm designs={activeDesigns} />
+            <NewOrderForm designs={activeDesigns} footerSlot={footerSlot} active={tab === 'new'} />
           </div>
 
           <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
@@ -196,6 +201,7 @@ export function CashierPage() {
         </div>
         <BuildTag />
       </div>
+      <div ref={setFooterSlot} className="cashier-footer" />
 
       <SoundGate />
       {cancelDialog}
@@ -209,8 +215,19 @@ export function CashierPage() {
   );
 }
 
-function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['designs'] }) {
+// On phones the send bar is rendered into `footerSlot` (a flex footer below the scroller) and only
+// while the New order tab is active; from 900 px it stays at the end of the card. State stays here.
+function NewOrderForm({
+  designs,
+  footerSlot,
+  active,
+}: {
+  designs: ReturnType<typeof useDesigns>['designs'];
+  footerSlot: HTMLElement | null;
+  active: boolean;
+}) {
   const { user, activeEvent } = useSession();
+  const narrow = useMediaQuery(NARROW_QUERY);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<ShirtSize | null>(null);
   const [pickedFront, setFrontId] = useState<string | null>(null);
@@ -303,6 +320,21 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
     setTimeout(() => setToast(null), 2500);
   };
 
+  // On phones the card's end can be off screen, so the result toast rides in the bar.
+  const toastEl = toast && <Toast message={toast.msg} tone={toast.tone} />;
+  const sendBar = (
+    <div className="send-bar">
+      {narrow && toastEl}
+      {summary && <div className="send-summary">{summary}</div>}
+      <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%' }}>
+        {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
+      </button>
+      {hint && !busy && (
+        <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
+      )}
+    </div>
+  );
+
   return (
     <section className="card grid" style={{ gap: 'var(--sp-5)', alignSelf: 'start' }}>
       <h2 style={{ margin: 0 }}>New order</h2>
@@ -338,7 +370,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
         />
       </div>
 
-      {toast && <Toast message={toast.msg} tone={toast.tone} />}
+      {!narrow && toastEl}
       {staleNotice && (
         <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{staleNotice}</span>
@@ -346,15 +378,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
         </div>
       )}
 
-      <div className="send-bar">
-        {summary && <div className="send-summary">{summary}</div>}
-        <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%' }}>
-          {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
-        </button>
-        {hint && !busy && (
-          <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
-        )}
-      </div>
+      {narrow ? (footerSlot && active ? createPortal(sendBar, footerSlot) : null) : sendBar}
     </section>
   );
 }

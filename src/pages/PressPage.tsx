@@ -7,7 +7,7 @@ import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
 import { useCancelOrder } from '../hooks/useCancelOrder';
 import { OrderCard } from '../components/OrderCard';
-import { TopBar, OfflineBanner } from '../components/TopBar';
+import { TopBar, TopBlock, OfflineBanner } from '../components/TopBar';
 import { SoundGate } from '../components/SoundGate';
 import { Toast } from '../components/ui/Toast';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -98,7 +98,7 @@ export function PressPage() {
   if (!activeEvent) {
     return (
       <div className="app">
-        <TopBar title="Press" />
+        <TopBlock><TopBar title="Press" /></TopBlock>
         <div className="content"><EmptyState>No active event. Ask an admin to activate one.</EmptyState></div>
       </div>
     );
@@ -106,8 +106,10 @@ export function PressPage() {
 
   return (
     <div className="app">
-      <TopBar title="Press queue" soundRetry />
-      <OfflineBanner connected={connected} />
+      <TopBlock>
+        <TopBar title="Press queue" soundRetry />
+        <OfflineBanner connected={connected} />
+      </TopBlock>
       <div className="content">
         {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">

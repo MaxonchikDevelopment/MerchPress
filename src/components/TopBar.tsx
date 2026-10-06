@@ -1,9 +1,11 @@
-import { useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useSession } from '../context/SessionContext';
 import { SoundRetryButton } from './SoundGate';
 import { alertNewOrder, alertReady, unlockAudio } from '../lib/notify';
 import { getWakeLockState, retryWakeLock, subscribeWakeLockState } from '../hooks/useWakeLock';
 
+// Compact app bar. Title and event on the left (one line each), actions on the right:
+// icon buttons on phones, icon plus label from 900 px. Sign out lives in the user menu.
 export function TopBar({
   title,
   children,
@@ -15,17 +17,29 @@ export function TopBar({
 }) {
   const { user, activeEvent, logout } = useSession();
   const wakeState = useSyncExternalStore(subscribeWakeLockState, getWakeLockState);
+  const [hint, setHint] = useState<string | null>(null);
+  const hintTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(hintTimer.current), []);
+
+  const showHint = (message: string) => {
+    setHint(message);
+    clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHint(null), 4000);
+  };
+
   return (
     <header className="topbar">
-      <div>
+      <div className="topbar-title">
         <h1>{title}</h1>
         <div className="sub">{activeEvent ? activeEvent.name : 'No active event'}</div>
       </div>
-      <div className="row">
+      {children && <nav className="topbar-nav" aria-label="Sections">{children}</nav>}
+      <div className="topbar-actions">
         {soundRetry && <SoundRetryButton />}
         {soundRetry && user && (
           <button
-            className="btn"
+            className="btn btn-bar"
+            aria-label="Test sound"
             onClick={() => {
               unlockAudio();
               // Play what this person will hear: Press gets new orders, Cashier gets ready.
@@ -33,34 +47,83 @@ export function TopBar({
               else alertReady();
             }}
           >
-            <span aria-hidden="true">🔔</span> Test sound
+            <span aria-hidden="true">🔔</span>
+            <span className="lbl">Test sound</span>
           </button>
         )}
         {soundRetry && user && (wakeState === 'released' || wakeState === 'unsupported') && (
           <button
-            className="pill"
-            onClick={retryWakeLock}
-            style={{ cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
-            title={
-              wakeState === 'unsupported'
-                ? 'This browser cannot keep the screen on. Set Auto-Lock to Never.'
-                : 'The screen is not being kept awake. Tap to retry.'
-            }
+            className="btn btn-bar"
+            aria-label={wakeState === 'unsupported' ? 'Screen may sleep. Set Auto-Lock to Never.' : 'Screen may sleep. Tap to retry.'}
+            onClick={() => {
+              retryWakeLock();
+              showHint(
+                wakeState === 'unsupported'
+                  ? 'This browser cannot keep the screen on. Set Auto-Lock to Never.'
+                  : 'The screen is not being kept awake. Retrying…',
+              );
+            }}
           >
-            <span aria-hidden="true">💤</span>{' '}
-            {wakeState === 'unsupported' ? 'Set Auto-Lock to Never' : 'Screen may sleep'}
+            <span aria-hidden="true">💤</span>
+            <span className="lbl">{wakeState === 'unsupported' ? 'Set Auto-Lock to Never' : 'Screen may sleep'}</span>
           </button>
         )}
-        {children && <nav className="topbar-nav" aria-label="Sections">{children}</nav>}
-        {user?.name && (
-          <span className="pill" title={`Signed in as ${user.name}`}>
-            <span aria-hidden="true">👤</span> {user.name}
-          </span>
-        )}
-        <button className="btn" onClick={logout} >Sign out</button>
+        <UserMenu name={user?.name} onLogout={logout} />
       </div>
+      {hint && <div className="topbar-toast" role="status" aria-live="polite">{hint}</div>}
     </header>
   );
+}
+
+// User chip that opens a small menu with Sign out. Closes on outside tap and Escape.
+function UserMenu({ name, onLogout }: { name?: string; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="user-menu" ref={ref}>
+      <button
+        className="btn btn-bar user-chip"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={name ? `Account menu, signed in as ${name}` : 'Account menu'}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span aria-hidden="true">👤</span>
+        <span className="user-chip-name">{name ?? 'Account'}</span>
+      </button>
+      {open && (
+        <div className="user-menu-pop" role="menu">
+          {name && <div className="user-menu-who">Signed in as {name}</div>}
+          <button className="btn user-menu-item" role="menuitem" onClick={onLogout}>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One non-scrolling block above .content: header, offline banner and (Cashier) the tab bar.
+// Opaque, and the only place that pads for the notch / Dynamic Island and the side insets.
+export function TopBlock({ children }: { children: ReactNode }) {
+  return <div className="top-block">{children}</div>;
 }
 
 // Amber banner shown when the realtime connection is down — reads as "degraded".

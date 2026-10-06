@@ -10,6 +10,7 @@ import { SectionLabel } from './ui/SectionLabel';
 import { EmptyState } from './ui/EmptyState';
 import type { Staff, UserRole } from '../types/db';
 import { BuildTag } from './BuildTag';
+import { TopBlock } from './TopBar';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   cashier: 'Cashier',
@@ -77,12 +78,14 @@ export function RoleSelect() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div>
-          <h1>MerchPress Queue</h1>
-          <div className="sub">{activeEvent ? activeEvent.name : 'No active event'}</div>
-        </div>
-      </header>
+      <TopBlock>
+        <header className="topbar">
+          <div className="topbar-title">
+            <h1>MerchPress Queue</h1>
+            <div className="sub">{activeEvent ? activeEvent.name : 'No active event'}</div>
+          </div>
+        </header>
+      </TopBlock>
 
       <div className="content page-enter" style={{ maxWidth: 640, margin: '0 auto', width: '100%' }}>
         {!role && (

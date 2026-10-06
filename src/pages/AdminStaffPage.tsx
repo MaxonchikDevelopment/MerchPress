@@ -13,6 +13,7 @@ import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import { Toast } from '../components/ui/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Staff, UserRole } from '../types/db';
 
 const ROLES: UserRole[] = ['cashier', 'press', 'admin'];
@@ -209,6 +210,7 @@ function PersonRow({
   const [role, setRole] = useState<UserRole>(person.role);
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const run = async (fn: () => Promise<boolean>) => {
     if (busy) return;
@@ -234,7 +236,10 @@ function PersonRow({
               className="btn btn-secondary"
               // Deactivating yourself would lock you out of this tab.
               disabled={busy || (isSelf && person.is_active)}
-              onClick={() => run(() => onUpdate(person.name, person.role, !person.is_active))}
+              onClick={() => {
+                if (person.is_active) setConfirming(true);
+                else void run(() => onUpdate(person.name, person.role, true));
+              }}
             >
               {person.is_active ? 'Deactivate' : 'Activate'}
             </button>
@@ -275,6 +280,18 @@ function PersonRow({
             <button className="btn" disabled={busy} onClick={() => setMode('view')}>Cancel</button>
           </div>
         </div>
+      )}
+      {confirming && (
+        <ConfirmDialog
+          title={`Deactivate ${person.name}? They will be signed out within about 30 seconds.`}
+          confirmLabel="Deactivate"
+          cancelLabel="Cancel"
+          onConfirm={() => {
+            setConfirming(false);
+            void run(() => onUpdate(person.name, person.role, false));
+          }}
+          onCancel={() => setConfirming(false)}
+        />
       )}
     </div>
   );

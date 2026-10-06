@@ -281,6 +281,15 @@ button {
   );
 }
 
+/* Compact secondary action under a primary one (Cancel on Ready cards) */
+.btn-compact {
+  align-self: flex-end;
+  margin-top: var(--sp-3);
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  font-size: 16px;
+}
+
 /* --------------------------------------------------------------------- */
 /* Inputs / fields                                                       */
 /* --------------------------------------------------------------------- */

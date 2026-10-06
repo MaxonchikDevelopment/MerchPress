@@ -194,9 +194,9 @@ export function CashierPage() {
                     disabled={completing.includes(o.id)}
                     onClick={() => complete(o)}
                   >
-                    {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
+                    {completing.includes(o.id) ? <><Spinner /> Confirming…</> : `✓ Picked up #${o.event_order_no}`}
                   </button>
-                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
+                  <button className="btn btn-danger-outline btn-compact" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {readyOrders.length === 0 && <EmptyState>None of your orders is ready yet.</EmptyState>}

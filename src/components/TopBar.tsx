@@ -1,6 +1,7 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { useSession } from '../context/SessionContext';
 import { SoundRetryButton } from './SoundGate';
+import { alertNewOrder, alertReady, unlockAudio } from '../lib/notify';
 import { getWakeLockState, retryWakeLock, subscribeWakeLockState } from '../hooks/useWakeLock';
 
 export function TopBar({
@@ -22,6 +23,19 @@ export function TopBar({
       </div>
       <div className="row">
         {soundRetry && <SoundRetryButton />}
+        {soundRetry && user && (
+          <button
+            className="btn"
+            onClick={() => {
+              unlockAudio();
+              // Play what this person will hear: Press gets new orders, Cashier gets ready.
+              if (user.role === 'press') alertNewOrder();
+              else alertReady();
+            }}
+          >
+            <span aria-hidden="true">🔔</span> Test sound
+          </button>
+        )}
         {soundRetry && user && (wakeState === 'released' || wakeState === 'unsupported') && (
           <button
             className="pill"

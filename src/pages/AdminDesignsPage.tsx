@@ -3,6 +3,7 @@ import { supabase, designPhotoUrl } from '../lib/supabase';
 import { eventOptions, type EffectiveColor } from '../lib/eventOptions';
 import { errorMessage, removePhotos, uploadDesignPhoto, type UploadStage } from '../lib/imageUpload';
 import { initials } from '../lib/initials';
+import { ImageLightbox } from '../components/ImageLightbox';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -10,6 +11,10 @@ import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { Design, DesignType } from '../types/db';
+
+// designs.type is `not null` with no default (0001_init.sql). The UI no longer offers it,
+// so new rows get this constant and edits never touch the column.
+const DEFAULT_DESIGN_TYPE: DesignType = 'big';
 
 const STAGE_LABEL: Record<UploadStage, string> = { preparing: 'Preparing photo…', uploading: 'Uploading…' };
 
@@ -28,7 +33,6 @@ export function AdminDesignsPage() {
   );
 
   const [name, setName] = useState('');
-  const [type, setType] = useState<DesignType>('big');
   const [colors, setColors] = useState<string[]>([]);
   const [front, setFront] = useState<File | null>(null);
   const [back, setBack] = useState<File | null>(null);
@@ -55,7 +59,7 @@ export function AdminDesignsPage() {
       const { error } = await supabase.from('designs').insert({
         event_id: eventId,
         name: name.trim(),
-        type,
+        type: DEFAULT_DESIGN_TYPE,
         photo_front,
         photo_back,
         compatible_colors: colors,
@@ -95,11 +99,6 @@ export function AdminDesignsPage() {
         </div>
 
         <div>
-          <SectionLabel>Type</SectionLabel>
-          <TypeToggle value={type} onChange={setType} />
-        </div>
-
-        <div>
           <SectionLabel>Compatible colors</SectionLabel>
           <div className="muted" style={{ fontSize: 13, marginBottom: 'var(--sp-2)' }}>
             None selected means all colors are allowed.
@@ -123,22 +122,13 @@ export function AdminDesignsPage() {
 
       <section>
         <SectionLabel>Catalog · {designs.length}</SectionLabel>
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {designs.map((d) => (
             <DesignCard key={d.id} design={d} palette={shirtColors} onChanged={reload} />
           ))}
           {designs.length === 0 && <EmptyState>No designs for this event yet.</EmptyState>}
         </div>
       </section>
-    </div>
-  );
-}
-
-function TypeToggle({ value, onChange }: { value: DesignType; onChange: (t: DesignType) => void }) {
-  return (
-    <div className="row">
-      <button className={value === 'big' ? 'btn btn-primary' : 'btn'} aria-pressed={value === 'big'} onClick={() => onChange('big')}>Big</button>
-      <button className={value === 'small' ? 'btn btn-primary' : 'btn'} aria-pressed={value === 'small'} onClick={() => onChange('small')}>Small</button>
     </div>
   );
 }
@@ -188,12 +178,11 @@ function DesignCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(d.name);
-  const [type, setType] = useState<DesignType>(d.type);
   const [colors, setColors] = useState<string[]>(d.compatible_colors);
   const [working, setWorking] = useState<string | null>(null); // label of the running action
   const [err, setErr] = useState<string | null>(null);
 
-  const url = designPhotoUrl(d.photo_front) ?? designPhotoUrl(d.photo_back);
+  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
 
   const run = async (label: string, fn: () => Promise<void>) => {
     if (working) return;
@@ -210,7 +199,6 @@ function DesignCard({
 
   const startEdit = () => {
     setName(d.name);
-    setType(d.type);
     setColors(d.compatible_colors);
     setErr(null);
     setEditing(true);
@@ -221,7 +209,7 @@ function DesignCard({
       if (!name.trim()) throw new Error('Enter a design name.');
       const { error } = await supabase
         .from('designs')
-        .update({ name: name.trim(), type, compatible_colors: colors })
+        .update({ name: name.trim(), compatible_colors: colors })
         .eq('id', d.id);
       if (error) throw error;
       setEditing(false);
@@ -265,18 +253,35 @@ function DesignCard({
 
   return (
     <div className="card grid" style={{ gap: 8, opacity: d.is_active ? 1 : 0.6 }}>
-      {url ? (
-        <img src={url} alt={d.name} loading="lazy" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }} />
-      ) : (
-        <div style={{ height: 140, background: 'var(--surface-raised)', borderRadius: 'var(--r-inner)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: 'var(--text-secondary)' }}>
-          {initials(d.name)}
-        </div>
-      )}
+      <div className="design-sides">
+        {(['front', 'back'] as const).map((side) => {
+          const url = designPhotoUrl(side === 'front' ? d.photo_front : d.photo_back);
+          const label = side === 'front' ? 'Front' : 'Back';
+          return (
+            <div key={side} className="design-side">
+              {url ? (
+                <button
+                  className="design-photo"
+                  aria-label={`Enlarge ${label.toLowerCase()} photo of ${d.name}`}
+                  onClick={() => setZoom({ src: url, alt: `${d.name} (${label.toLowerCase()})` })}
+                >
+                  <img src={url} alt="" loading="lazy" />
+                </button>
+              ) : (
+                <div className="design-photo design-photo-empty">{initials(d.name)}</div>
+              )}
+              <div className="muted design-side-label">{label}</div>
+              {!editing && (
+                <PhotoReplace label={`Replace ${side}`} disabled={!!working} onPick={(f) => replacePhoto(side, f)} />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {editing ? (
         <>
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Design name" style={{ width: '100%' }} />
-          <TypeToggle value={type} onChange={setType} />
           <ColorToggles
             palette={palette}
             selected={colors}
@@ -296,28 +301,25 @@ function DesignCard({
             {!d.is_active && <span className="badge" style={{ marginLeft: 8 }}>Hidden</span>}
           </div>
           <div className="muted" style={{ fontSize: 13 }}>
-            {d.type} · {d.compatible_colors.map((k) => palette.find((c) => c.key === k)?.label ?? k).join(', ') || 'any'}
+            Colors: {d.compatible_colors.map((k) => palette.find((c) => c.key === k)?.label ?? k).join(', ') || 'any'}
           </div>
-          <div className="row">
-            <PhotoReplace label="Replace front" disabled={!!working} onPick={(f) => replacePhoto('front', f)} />
-            <PhotoReplace label="Replace back" disabled={!!working} onPick={(f) => replacePhoto('back', f)} />
-          </div>
-          <div className="row">
+          <div className="design-actions">
             <button className="btn" onClick={startEdit} disabled={!!working}>Edit</button>
             <button className="btn" onClick={toggleActive} disabled={!!working}>{d.is_active ? 'Hide' : 'Show'}</button>
-            <button className="btn-text" onClick={remove} disabled={!!working}>Delete</button>
+            <button className="btn" onClick={remove} disabled={!!working}>Delete</button>
           </div>
         </>
       )}
       {working && !editing && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
       {err && <div className="toast toast-error" role="alert">{err}</div>}
+      {zoom && <ImageLightbox src={zoom.src} alt={zoom.alt} onClose={() => setZoom(null)} />}
     </div>
   );
 }
 
 function PhotoReplace({ label, disabled, onPick }: { label: string; disabled: boolean; onPick: (f: File) => void }) {
   return (
-    <label className="btn-text" style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1 }}>
+    <label className="btn-text design-replace" style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1 }}>
       {label}
       <input
         type="file"

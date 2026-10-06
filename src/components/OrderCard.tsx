@@ -129,13 +129,14 @@ export function OrderCard({
       </div>
 
       <div className="order-secondary">
-        Cashier: {order.cashier_name ?? '—'}
-        {order.claimed_by && !claimedByName ? ' · claimed' : ''}
+        Sold by <strong>{order.cashier_name ?? '—'}</strong>
       </div>
-      {claimedByName && (
+      {claimedByName ? (
         <div className="order-secondary">
           Claimed by <strong>{claimedByName}</strong>
         </div>
+      ) : (
+        order.claimed_by && <div className="order-secondary">Claimed</div>
       )}
 
       {children}

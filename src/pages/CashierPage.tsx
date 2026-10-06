@@ -167,9 +167,10 @@ export function CashierPage() {
         {notices.length > 0 && (
           <div className="top-notices">
             {notices.map((n) => (
-              <div key={n.key} className="toast toast-error" role="status" style={{ justifyContent: 'space-between' }}>
+              <div key={n.key} className="toast toast-error toast-notice" role="status" style={{ justifyContent: 'space-between' }}>
                 <span>{n.text}</span>
                 <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
+                <span className="notice-bar" aria-hidden="true" style={{ animationDuration: `${NOTICE_MS}ms` }} />
               </div>
             ))}
           </div>

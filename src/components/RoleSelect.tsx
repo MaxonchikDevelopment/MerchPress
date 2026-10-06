@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { unlockAudio } from '../lib/notify';
 import { getLastUser, setLastUser } from '../lib/lastUser';
@@ -29,19 +29,41 @@ const ROLE_HINTS: Record<UserRole, string> = {
 export function RoleSelect() {
   const { login, activeEvent } = useSession();
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [staffState, setStaffState] = useState<'loading' | 'error' | 'ok'>('loading');
   const [role, setRole] = useState<UserRole | null>(null);
   const [picked, setPicked] = useState<Staff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lastUser = useMemo(() => getLastUser(), []);
 
+  // The read runs at mount and again on Retry; `mounted` drops an answer that lands after unmount.
+  const mounted = useRef(true);
   useEffect(() => {
-    void supabase
-      .from('staff_v')
-      .select('*')
-      .order('name')
-      .then(({ data }) => setStaff((data as Staff[]) ?? []));
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
   }, []);
+
+  const loadStaff = useCallback(async () => {
+    const { data, error: readErr } = await supabase.from('staff_v').select('*').order('name');
+    if (!mounted.current) return;
+    if (readErr || !data) {
+      setStaffState('error');
+      return;
+    }
+    setStaff(data as Staff[]);
+    setStaffState('ok');
+  }, []);
+
+  useEffect(() => {
+    void loadStaff();
+  }, [loadStaff]);
+
+  const retryStaff = () => {
+    setStaffState('loading');
+    void loadStaff();
+  };
 
   const peopleForRole = useMemo(
     () => staff.filter((s) => s.role === role),
@@ -138,7 +160,14 @@ export function RoleSelect() {
                 </button>
               ))}
             </div>
-            {peopleForRole.length === 0 && <EmptyState>No staff for this role yet.</EmptyState>}
+            {staffState === 'loading' && <EmptyState>Loading staff…</EmptyState>}
+            {staffState === 'error' && (
+              <div className="grid" style={{ gap: 'var(--sp-3)' }}>
+                <EmptyState>Couldn't load staff. Check the connection.</EmptyState>
+                <button className="btn btn-lg" onClick={retryStaff}>Retry</button>
+              </div>
+            )}
+            {staffState === 'ok' && peopleForRole.length === 0 && <EmptyState>No staff for this role yet.</EmptyState>}
           </>
         )}
 

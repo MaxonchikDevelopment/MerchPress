@@ -38,7 +38,7 @@ const NOTHING_CHOSEN = { bundle: false, front: false, back: false };
 export function CashierPage() {
   const { user, activeEvent } = useSession();
   const eventId = activeEvent?.id ?? null;
-  const { designs, activeDesigns } = useDesigns(eventId);
+  const { designs, activeDesigns, loading: designsLoading, error: designsError, reload: reloadDesigns } = useDesigns(eventId);
 
   // Dedupe ready alerts across refresh/reconnect (per cashier+event).
   const userId = user?.id;
@@ -103,7 +103,7 @@ export function CashierPage() {
     [userId, dismissNotice],
   );
 
-  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded, onCancelled });
+  const { orders, connected, loaded, reload } = useOrders(eventId, { onReady, onLoaded, onCancelled });
 
   const showError = useCallback((message: string) => {
     setToast(message);
@@ -181,7 +181,14 @@ export function CashierPage() {
       <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">
           <div className={tab === 'new' ? undefined : 'pane-inactive'}>
-            <NewOrderForm designs={activeDesigns} footerSlot={footerSlot} active={tab === 'new'} />
+            <NewOrderForm
+              designs={activeDesigns}
+              designsLoading={designsLoading}
+              designsError={designsError}
+              onRetryDesigns={() => void reloadDesigns()}
+              footerSlot={footerSlot}
+              active={tab === 'new'}
+            />
           </div>
 
           <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
@@ -199,7 +206,9 @@ export function CashierPage() {
                   <button className="btn btn-danger-outline btn-compact" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
-              {readyOrders.length === 0 && <EmptyState>None of your orders is ready yet.</EmptyState>}
+              {readyOrders.length === 0 && (
+                <EmptyState>{loaded ? 'None of your orders is ready yet.' : 'Loading orders…'}</EmptyState>
+              )}
             </div>
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
@@ -208,7 +217,9 @@ export function CashierPage() {
                   <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
-              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
+              {myOpenOrders.length === 0 && (
+                <EmptyState>{loaded ? 'No open orders from you.' : 'Loading orders…'}</EmptyState>
+              )}
             </div>
           </section>
         </div>
@@ -228,14 +239,32 @@ export function CashierPage() {
   );
 }
 
+// Above the print tiles: a read in flight or failed. "No print" stays available below it.
+function DesignsStatus({ loading, error, onRetry }: { loading: boolean; error: boolean; onRetry: () => void }) {
+  if (loading) return <EmptyState>Loading designs…</EmptyState>;
+  if (!error) return null;
+  return (
+    <div className="grid" style={{ gap: 'var(--sp-3)' }} role="alert">
+      <EmptyState>Couldn't load designs. Check the connection.</EmptyState>
+      <button className="btn btn-lg" onClick={onRetry}>Retry</button>
+    </div>
+  );
+}
+
 // On phones the send bar is rendered into `footerSlot` (a flex footer below the scroller) and only
 // while the New order tab is active; from 900 px it stays at the end of the card. State stays here.
 function NewOrderForm({
   designs,
+  designsLoading,
+  designsError,
+  onRetryDesigns,
   footerSlot,
   active,
 }: {
   designs: ReturnType<typeof useDesigns>['designs'];
+  designsLoading: boolean;
+  designsError: boolean;
+  onRetryDesigns: () => void;
   footerSlot: HTMLElement | null;
   active: boolean;
 }) {
@@ -428,6 +457,7 @@ function NewOrderForm({
           ))}
         </div>
       </div>
+      <DesignsStatus loading={designsLoading} error={designsError} onRetry={onRetryDesigns} />
       {mode === 'bundle' ? (
         collapsed('bundle', pickedFront, frontId) ? (
           <ChosenPrint design={bundle} sides={['front', 'back']} onChange={() => reopen('bundle')} />

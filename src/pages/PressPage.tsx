@@ -66,7 +66,7 @@ export function PressPage() {
     [userId, dismissNotice],
   );
 
-  const { orders, connected, reload } = useOrders(eventId, { onNew, onLoaded, onCancelled });
+  const { orders, connected, loaded, reload } = useOrders(eventId, { onNew, onLoaded, onCancelled });
 
   const showError = useCallback((message: string) => {
     setToast(message);
@@ -144,7 +144,7 @@ export function PressPage() {
       </TopBlock>
       <div className="content">
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
-          {queue.length} in queue
+          {loaded ? `${queue.length} in queue` : '\u00a0'}
         </div>
         <div
           className="grid"
@@ -173,7 +173,9 @@ export function PressPage() {
               </OrderCard>
             );
           })}
-          {queue.length === 0 && <EmptyState>Queue is empty 🎉</EmptyState>}
+          {queue.length === 0 && (
+            <EmptyState>{loaded ? 'Queue is empty 🎉' : 'Loading orders…'}</EmptyState>
+          )}
         </div>
         <BuildTag />
       </div>

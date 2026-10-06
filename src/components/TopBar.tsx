@@ -3,6 +3,7 @@ import { useSession } from '../context/SessionContext';
 import { SoundRetryButton } from './SoundGate';
 import { alertNewOrder, alertReady, unlockAudio } from '../lib/notify';
 import { repeatsLabel } from '../lib/displayName';
+import { OFFLINE_GRACE_MS, offlineBannerVisible } from '../lib/offlineBanner';
 import type { UserRole } from '../types/db';
 import { getWakeLockState, retryWakeLock, subscribeWakeLockState } from '../hooks/useWakeLock';
 
@@ -132,8 +133,19 @@ export function TopBlock({ children }: { children: ReactNode }) {
 }
 
 // Amber banner shown when the realtime connection is down — reads as "degraded".
+// Shows at once once the connection has been up; before the first connection it waits a
+// grace from mount.
 export function OfflineBanner({ connected }: { connected: boolean }) {
-  if (connected) return null;
+  const [graceElapsed, setGraceElapsed] = useState(false);
+  const [everConnected, setEverConnected] = useState(false);
+  useEffect(() => {
+    if (connected) setEverConnected(true);
+  }, [connected]);
+  useEffect(() => {
+    const t = setTimeout(() => setGraceElapsed(true), OFFLINE_GRACE_MS);
+    return () => clearTimeout(t);
+  }, []);
+  if (!offlineBannerVisible(connected, everConnected, graceElapsed)) return null;
   return (
     <div className="banner banner-offline" role="alert">
       ⚠ Reconnecting… orders may be delayed

@@ -15,7 +15,7 @@ import { NARROW_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCancelOrder } from '../hooks/useCancelOrder';
 import { ColorPicker } from '../components/ColorPicker';
 import { SizePicker } from '../components/SizePicker';
-import { DesignPicker, BundlePreview } from '../components/DesignPicker';
+import { DesignPicker, ChosenPrint } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
 import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
@@ -28,6 +28,8 @@ import type { Order, ShirtSize } from '../types/db';
 import { BuildTag } from '../components/BuildTag';
 
 type CashierTab = 'new' | 'queue';
+
+const NOTHING_CHOSEN = { bundle: false, front: false, back: false };
 
 export function CashierPage() {
   const { user, activeEvent } = useSession();
@@ -235,6 +237,8 @@ function NewOrderForm({
   const [pickedFront, setFrontId] = useState<string | null>(null);
   const [pickedBack, setBackId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
+  // View only: which print pickers the cashier has answered (so "No print" can collapse too).
+  const [chosen, setChosen] = useState(NOTHING_CHOSEN);
   const [colorNote, setColorNote] = useState<string | null>(null); // bundle cleared the colour; stays until the next colour pick or print change
   const [busy, setBusy] = useState(false);
   const requestId = useRef<{ id: string; eventId: string } | null>(null); // idempotency key of the current draft
@@ -259,11 +263,16 @@ function NewOrderForm({
   });
   const visibleColors = colors.filter((c) => visible.includes(c.key));
   const bundle = mode === 'bundle' ? designs.find((d) => d.id === frontId) ?? null : null;
+  // A picker collapses once answered; a pick that was hidden since keeps the grid open.
+  const collapsed = (key: keyof typeof NOTHING_CHOSEN, picked: string | null, id: string | null) =>
+    chosen[key] && (picked === null || id !== null);
+  const reopen = (key: keyof typeof NOTHING_CHOSEN) => setChosen((c) => ({ ...c, [key]: false }));
 
   // Bundle: one design on both sides. Colours it does not fit are hidden, so a picked one is cleared.
   const pickBundle = (id: string | null) => {
     setFrontId(id);
     setBackId(id);
+    setChosen((c) => ({ ...c, bundle: true }));
     const next = printColors({
       mode,
       chosen: designs.filter((d) => d.id === id),
@@ -273,6 +282,10 @@ function NewOrderForm({
     if (next.resetColor) setColor(null);
     const name = designs.find((d) => d.id === id)?.name;
     setColorNote(next.resetColor && name ? `Colour cleared: not available for ${name}` : null);
+  };
+  const pickSide = (side: 'front' | 'back', id: string | null) => {
+    (side === 'front' ? setFrontId : setBackId)(id);
+    setChosen((c) => ({ ...c, [side]: true }));
   };
   const pickColor = (key: string) => {
     setColor(key);
@@ -285,7 +298,24 @@ function NewOrderForm({
     setColorNote(null);
     setFrontId(null);
     setBackId(null);
+    setChosen(NOTHING_CHOSEN);
   };
+
+  // Same clearing after a successful send and on Reset. The mode (Bundle or Custom) stays.
+  const clearDraft = () => {
+    requestId.current = null;
+    setStaleNotice(null);
+    setColor(null);
+    setColorNote(null);
+    setSize(null);
+    setFrontId(null);
+    setBackId(null);
+    setChosen(NOTHING_CHOSEN);
+    setClientName('');
+  };
+  const dirty = Boolean(
+    pickedColor || pickedSize || pickedFront || pickedBack || clientName || colorNote || chosen.bundle || chosen.front || chosen.back,
+  );
 
   const canSubmit = color && size && !busy;
   const hint = sendHint(color, size);
@@ -341,15 +371,8 @@ function NewOrderForm({
       );
       return;
     }
-    requestId.current = null;
-    setStaleNotice(null);
+    clearDraft();
     setToast({ msg: `Sent to press — Order #${order.event_order_no}`, tone: 'success' });
-    setColor(null);
-    setColorNote(null);
-    setSize(null);
-    setFrontId(null);
-    setBackId(null);
-    setClientName('');
     setTimeout(() => setToast(null), 2500);
   };
 
@@ -359,9 +382,14 @@ function NewOrderForm({
     <div className="send-bar">
       {narrow && toastEl}
       {summary && <div className="send-summary">{summary}</div>}
-      <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%' }}>
-        {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
-      </button>
+      <div className="send-row">
+        <button className="btn btn-secondary btn-reset" disabled={!dirty || busy} onClick={clearDraft}>
+          Reset
+        </button>
+        <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
+          {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
+        </button>
+      </div>
       {hint && !busy && (
         <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
       )}
@@ -372,6 +400,47 @@ function NewOrderForm({
     <section className="card grid" style={{ gap: 'var(--sp-5)', alignSelf: 'start' }}>
       <h2 style={{ margin: 0 }}>New order</h2>
 
+      <div>
+        <SectionLabel>Print</SectionLabel>
+        <div className="print-mode" role="group" aria-label="Print mode">
+          {(['bundle', 'custom'] as const).map((m) => (
+            <button
+              key={m}
+              aria-pressed={mode === m}
+              className={mode === m ? 'tab tab-active' : 'tab'}
+              onClick={() => switchMode(m)}
+            >
+              {m === 'bundle' ? 'Bundle' : 'Custom print'}
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === 'bundle' ? (
+        collapsed('bundle', pickedFront, frontId) ? (
+          <ChosenPrint design={bundle} sides={['front', 'back']} onChange={() => reopen('bundle')} />
+        ) : (
+          <DesignPicker designs={designs} side="bundle" value={frontId} onChange={pickBundle} />
+        )
+      ) : (
+        <>
+          <div>
+            <SectionLabel>Front print</SectionLabel>
+            {collapsed('front', pickedFront, frontId) ? (
+              <ChosenPrint design={designs.find((d) => d.id === frontId) ?? null} sides={['front']} onChange={() => reopen('front')} />
+            ) : (
+              <DesignPicker designs={designs} side="front" value={frontId} onChange={(id) => pickSide('front', id)} />
+            )}
+          </div>
+          <div>
+            <SectionLabel>Back print</SectionLabel>
+            {collapsed('back', pickedBack, backId) ? (
+              <ChosenPrint design={designs.find((d) => d.id === backId) ?? null} sides={['back']} onChange={() => reopen('back')} />
+            ) : (
+              <DesignPicker designs={designs} side="back" value={backId} onChange={(id) => pickSide('back', id)} />
+            )}
+          </div>
+        </>
+      )}
       <div>
         <SectionLabel>Shirt color</SectionLabel>
         <ColorPicker colors={visibleColors} value={color} onChange={pickColor} dimmed={dimmed} />
@@ -390,38 +459,6 @@ function NewOrderForm({
         <SectionLabel>Size</SectionLabel>
         <SizePicker sizes={sizes} value={size} onChange={setSize} />
       </div>
-      <div>
-        <SectionLabel>Print</SectionLabel>
-        <div className="print-mode" role="group" aria-label="Print mode">
-          {(['bundle', 'custom'] as const).map((m) => (
-            <button
-              key={m}
-              aria-pressed={mode === m}
-              className={mode === m ? 'tab tab-active' : 'tab'}
-              onClick={() => switchMode(m)}
-            >
-              {m === 'bundle' ? 'Bundle' : 'Custom print'}
-            </button>
-          ))}
-        </div>
-      </div>
-      {mode === 'bundle' ? (
-        <div className="grid" style={{ gap: 'var(--sp-3)' }}>
-          <DesignPicker designs={designs} side="bundle" value={frontId} onChange={pickBundle} />
-          {bundle && <BundlePreview design={bundle} />}
-        </div>
-      ) : (
-        <>
-          <div>
-            <SectionLabel>Front print</SectionLabel>
-            <DesignPicker designs={designs} side="front" value={frontId} onChange={setFrontId} />
-          </div>
-          <div>
-            <SectionLabel>Back print</SectionLabel>
-            <DesignPicker designs={designs} side="back" value={backId} onChange={setBackId} />
-          </div>
-        </>
-      )}
       <div>
         <SectionLabel>Client name (optional)</SectionLabel>
         <input

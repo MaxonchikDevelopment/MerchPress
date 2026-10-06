@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { designPhotoUrl } from '../lib/supabase';
 import { initials } from '../lib/initials';
 import type { Design } from '../types/db';
+import { ImageLightbox } from './ImageLightbox';
 
 // Image-tile picker so staff recognize prints by picture, not text.
 // `side` chooses which photo to show on the tile; 'bundle' shows front and back side by side
@@ -123,18 +124,78 @@ function Tile({
   );
 }
 
-// Big front/back preview of the chosen bundle. A side without a photo shows the initials tile.
-export function BundlePreview({ design }: { design: Design }) {
+// The chosen print as one compact row: small photos (tap enlarges), the name and a Change button
+// that reopens the picker. `design` null is the "No print" / "None" choice. A side without a
+// photo shows the initials tile.
+export function ChosenPrint({
+  design,
+  sides,
+  onChange,
+}: {
+  design: Design | null;
+  sides: ('front' | 'back')[];
+  onChange: () => void;
+}) {
   return (
-    <div style={{ display: 'flex', gap: 12, maxWidth: 520 }} aria-label={`Bundle preview: ${design.name}`}>
-      {(['front', 'back'] as const).map((side) => (
-        <div key={side} style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ borderRadius: 'var(--r-inner)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-            <TileImage url={designPhotoUrl(side === 'front' ? design.photo_front : design.photo_back)} name={design.name} height={200} />
-          </div>
-          <div className="muted" style={{ fontSize: 13, marginTop: 4, textAlign: 'center' }}>{side}</div>
-        </div>
-      ))}
+    <div
+      className="row"
+      style={{
+        flexWrap: 'nowrap',
+        gap: 'var(--sp-3)',
+        padding: 'var(--sp-2)',
+        background: 'var(--surface-raised)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--r-inner)',
+      }}
+    >
+      {design &&
+        sides.map((side) => (
+          <CompactThumb key={side} side={side} name={design.name} url={designPhotoUrl(side === 'front' ? design.photo_front : design.photo_back)} />
+        ))}
+      <div style={{ flex: 1, minWidth: 0, fontWeight: 700, overflowWrap: 'anywhere' }}>
+        {design ? design.name : sides.length === 2 ? 'No print' : 'None'}
+      </div>
+      <button type="button" className="btn btn-secondary" onClick={onChange} style={{ flex: 'none', minHeight: 44, fontSize: 15 }}>
+        Change
+      </button>
+    </div>
+  );
+}
+
+function CompactThumb({ url, name, side }: { url: string | null; name: string; side: 'front' | 'back' }) {
+  const [failed, setFailed] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+  const box = { width: 56, height: 56, borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)', flex: 'none' } as const;
+  if (url && !failed) {
+    return (
+      <>
+        <button
+          type="button"
+          aria-label={`Enlarge ${side} print — ${name}`}
+          onClick={() => setZoomed(true)}
+          style={{ padding: 0, border: 0, background: 'none', display: 'block', cursor: 'zoom-in', flex: 'none' }}
+        >
+          <img src={url} alt={`${side} — ${name}`} onError={() => setFailed(true)} style={{ ...box, display: 'block', objectFit: 'cover' }} />
+        </button>
+        {zoomed && <ImageLightbox src={url} alt={`${side} — ${name}`} onClose={() => setZoomed(false)} />}
+      </>
+    );
+  }
+  return (
+    <div
+      aria-label={`${name} (no ${side} photo)`}
+      style={{
+        ...box,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--surface-card)',
+        color: 'var(--text-secondary)',
+        fontSize: 16,
+        fontWeight: 800,
+      }}
+    >
+      {initials(name)}
     </div>
   );
 }

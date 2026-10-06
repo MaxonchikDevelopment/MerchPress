@@ -574,6 +574,21 @@ select:focus-visible {
 .cashier-footer {
   display: none;
 }
+/* Reset (compact, left) next to Send (fills the rest) */
+.send-row {
+  display: flex;
+  gap: var(--sp-3);
+}
+.send-row .btn-reset {
+  flex: none;
+  min-height: var(--touch-lg);
+  font-size: 16px;
+}
+.send-row .btn-lg {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
 .send-summary {
   color: var(--text-secondary);
   font-size: 14px;

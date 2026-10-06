@@ -83,7 +83,7 @@ export function OrderCard({
   showWait?: boolean;
   edgeColor?: string; // left-edge status accent (press queue)
   alert?: boolean; // pulse to escalate (overdue)
-  showClaimedBy?: boolean; // Press and Cashier Queue: name the person who claimed an in-progress order
+  showClaimedBy?: boolean; // Press, Cashier In progress and Admin Orders: name the person who claimed an in-progress or ready order
   children?: ReactNode;
 }) {
   // Press and Cashier only list orders of the active event.
@@ -91,7 +91,7 @@ export function OrderCard({
   const { colorLabel } = eventOptions(activeEvent);
   const front = designs.find((d) => d.id === order.design_front_id);
   const back = designs.find((d) => d.id === order.design_back_id);
-  const claimedByName = useStaffName(showClaimedBy && order.status === 'in_progress' ? order.claimed_by : null);
+  const claimedByName = useStaffName(showClaimedBy && (order.status === 'in_progress' || order.status === 'ready') ? order.claimed_by : null);
 
   return (
     <div

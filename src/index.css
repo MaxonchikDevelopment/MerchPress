@@ -615,6 +615,62 @@ h2 {
 }
 
 /* --------------------------------------------------------------------- */
+/* Overlays: portalled to <body>, fixed to the viewport, above .top-block (z 10) */
+/* --------------------------------------------------------------------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(var(--sp-6), env(safe-area-inset-top)) max(var(--sp-6), env(safe-area-inset-right))
+    max(var(--sp-6), env(safe-area-inset-bottom)) max(var(--sp-6), env(safe-area-inset-left));
+  background: var(--surface-overlay);
+  overscroll-behavior: contain;
+  touch-action: none; /* a drag on the backdrop moves nothing; taps still click */
+}
+.overlay-card {
+  width: 100%;
+  max-width: 360px;
+  gap: var(--sp-4);
+  text-align: center;
+}
+.alert-card {
+  width: 100%;
+  max-width: 360px;
+  padding: var(--sp-8) var(--sp-5);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: var(--r-card);
+}
+.alert-title {
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.alert-sub {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: var(--sp-3);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 900px) {
+  .alert-card {
+    max-width: 640px;
+    padding: 48px 40px;
+  }
+  .alert-title {
+    font-size: 56px;
+  }
+  .alert-sub {
+    font-size: 30px;
+  }
+}
+
+/* --------------------------------------------------------------------- */
 /* Banner (degraded/offline — amber, reads as "degraded" not "error")    */
 /* --------------------------------------------------------------------- */
 .banner {

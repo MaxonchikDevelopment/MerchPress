@@ -13,7 +13,7 @@ const check = (name: string, actual: unknown, expected: unknown) => {
 check('no update waits', updateAction({ updateReady: false, busyReasons: [] }), 'wait');
 check('no update and busy still waits', updateAction({ updateReady: false, busyReasons: ['draft'] }), 'wait');
 check('update and idle applies', updateAction({ updateReady: true, busyReasons: [] }), 'apply');
-for (const r of ['draft', 'sending', 'alert', 'confirm', 'pin']) {
+for (const r of ['draft', 'sending', 'alert', 'confirm', 'pin', 'status']) {
   check(`update and ${r} shows the banner`, updateAction({ updateReady: true, busyReasons: [r] }), 'banner');
 }
 check('several reasons show the banner', updateAction({ updateReady: true, busyReasons: ['draft', 'alert'] }), 'banner');

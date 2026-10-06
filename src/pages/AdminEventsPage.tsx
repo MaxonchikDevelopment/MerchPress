@@ -5,9 +5,14 @@ import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import type { EventRow } from '../types/db';
+
+// Concept size set pre-checked for a new event; SHIRT_SIZES stays the app-wide default.
+const NEW_EVENT_SIZES: ShirtSize[] = ['S', 'M', 'L', 'XL'];
 import { Toast } from '../components/ui/Toast';
 import { END_DATE_ERROR, formatEventDates, isEndBeforeStart } from '../lib/eventDates';
 import { EventEditor } from '../components/EventEditor';
+import { SHIRT_SIZES } from '../config';
+import type { ShirtSize } from '../types/db';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function AdminEventsPage() {
@@ -18,6 +23,7 @@ export function AdminEventsPage() {
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sizes, setSizes] = useState<ShirtSize[]>(NEW_EVENT_SIZES);
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,16 +33,18 @@ export function AdminEventsPage() {
 
   const create = async () => {
     if (!name.trim() || busy) return;
+    if (sizes.length === 0) return setCreateError('Pick at least one size.');
     if (isEndBeforeStart(date, endDate)) return setCreateError(END_DATE_ERROR);
     setBusy(true);
     setCreateError(null);
-    const err = await createEvent(name.trim(), location.trim(), date, endDate);
+    const err = await createEvent(name.trim(), location.trim(), date, endDate, sizes.length === SHIRT_SIZES.length ? null : sizes);
     setBusy(false);
     if (err) return setCreateError(err);
     setName('');
     setLocation('');
     setDate('');
     setEndDate('');
+    setSizes(NEW_EVENT_SIZES);
     setCreating(false);
   };
 
@@ -108,8 +116,27 @@ export function AdminEventsPage() {
                 aria-label="End date"
               />
             </div>
+            <div>
+              <SectionLabel>Sizes (pick at least one)</SectionLabel>
+              <div className="row">
+                {SHIRT_SIZES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={sizes.includes(s) ? 'btn btn-primary btn-selected' : 'btn'}
+                    aria-pressed={sizes.includes(s)}
+                    onClick={() =>
+                      setSizes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : SHIRT_SIZES.filter((x) => x === s || cur.includes(x))))
+                    }
+                    style={{ minWidth: 64 }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
             {createError && <Toast message={createError} tone="error" />}
-            <button className="btn btn-primary" onClick={create} disabled={!name.trim() || busy}>
+            <button className="btn btn-primary" onClick={create} disabled={!name.trim() || sizes.length === 0 || busy}>
               {busy ? <><Spinner /> Creating…</> : 'Create event'}
             </button>
           </section>

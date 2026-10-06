@@ -4,6 +4,7 @@ import { toCsv, downloadCsv } from '../lib/csv';
 import { eventOptions } from '../lib/eventOptions';
 import { eventDay, formatEventTime } from '../lib/eventTime';
 import { printMode } from '../lib/printMode';
+import { tally, distinctDesignTally, byDay as tallyByDay } from '../lib/statsTally';
 import { STATUS_COLORS } from '../lib/colors';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
@@ -16,12 +17,6 @@ function fmtDuration(secs: number | null): string {
   if (secs == null) return '—';
   const m = Math.round(secs / 60);
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`;
-}
-
-function tally<T extends string | number>(items: T[]): [T, number][] {
-  const map = new Map<T, number>();
-  for (const i of items) map.set(i, (map.get(i) ?? 0) + 1);
-  return [...map.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 export function StatsPage() {
@@ -61,13 +56,11 @@ export function StatsPage() {
 
   const designName = (id: string | null) => designs.find((d) => d.id === id)?.name ?? '';
 
-  const byDesign = useMemo(() => {
-    const names = liveOrders.flatMap((o) =>
-      [o.design_front_id, o.design_back_id].filter(Boolean).map((id) => designName(id as string)),
-    );
-    return tally(names.filter(Boolean));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveOrders, designs]);
+  const byDesign = useMemo(
+    () => distinctDesignTally(liveOrders, new Map(designs.map((d) => [d.id, d.name]))),
+    [liveOrders, designs],
+  );
+  const byDay = useMemo(() => tallyByDay(liveOrders), [liveOrders]);
 
   const bySize = useMemo(() => tally(liveOrders.map((o) => o.shirt_size)), [liveOrders]);
   const byColor = useMemo(() => tally(liveOrders.map((o) => colorLabel(o.shirt_color))), [liveOrders, colorLabel]);
@@ -148,6 +141,7 @@ export function StatsPage() {
             <Breakdown title="By design" rows={byDesign} />
             <Breakdown title="By size" rows={bySize} />
             <Breakdown title="By color" rows={byColor} />
+            <Breakdown title="By day" rows={byDay} />
           </div>
         </>
       )}

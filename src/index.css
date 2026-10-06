@@ -500,7 +500,8 @@ select:focus-visible {
   line-height: 22px;
   text-align: center;
 }
-/* Send bar: sticky (never fixed) at the bottom of the scrolling .content, inside the New order card. */
+/* Send bar, 900 px and up: sticky at the end of the New order card. On phones it is rendered into
+   .cashier-footer instead (flex footer below the scroller, see below). */
 .send-bar {
   position: sticky;
   bottom: 0;
@@ -513,6 +514,9 @@ select:focus-visible {
   background: var(--surface-card);
   border-top: 1px solid var(--border-subtle);
   border-radius: 0 0 var(--r-card) var(--r-card);
+}
+.cashier-footer {
+  display: none;
 }
 .send-summary {
   color: var(--text-secondary);
@@ -528,6 +532,31 @@ select:focus-visible {
 @media (max-width: 899.98px) {
   .pane-inactive {
     display: none;
+  }
+  /* Phone bottom action bar: last flex child of .app, so .content ends exactly above it.
+     Empty (Queue tab) it takes no space. Opaque, padded for the home indicator and side insets. */
+  .cashier-footer {
+    display: block;
+    flex: none;
+    position: relative;
+    z-index: 10;
+    background: var(--surface-card);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .cashier-footer:empty {
+    display: none;
+  }
+  .cashier-footer .send-bar {
+    position: static;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    padding: var(--sp-3) calc(var(--sp-4) + env(safe-area-inset-right))
+      calc(var(--sp-3) + env(safe-area-inset-bottom)) calc(var(--sp-4) + env(safe-area-inset-left));
+  }
+  /* The footer already clears the home indicator */
+  .content:has(~ .cashier-footer:not(:empty)) {
+    padding-bottom: var(--sp-6);
   }
 }
 .row {

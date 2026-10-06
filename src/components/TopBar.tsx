@@ -2,7 +2,11 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { useSession } from '../context/SessionContext';
 import { SoundRetryButton } from './SoundGate';
 import { alertNewOrder, alertReady, unlockAudio } from '../lib/notify';
+import { repeatsLabel } from '../lib/displayName';
+import type { UserRole } from '../types/db';
 import { getWakeLockState, retryWakeLock, subscribeWakeLockState } from '../hooks/useWakeLock';
+
+const ROLE_LABELS: Record<UserRole, string> = { cashier: 'Cashier', press: 'Press', admin: 'Admin' };
 
 // Compact app bar. Title and event on the left (one line each), actions on the right:
 // icon buttons on phones, icon plus label from 900 px. Sign out lives in the user menu.
@@ -69,7 +73,7 @@ export function TopBar({
             {wakeState === 'unsupported' && <span className="lbl-phone">Auto-Lock → Never</span>}
           </button>
         )}
-        <UserMenu name={user?.name} onLogout={logout} />
+        <UserMenu name={user?.name} hideName={repeatsLabel(user?.name, title, user && ROLE_LABELS[user.role])} onLogout={logout} />
       </div>
       {hint && <div className="topbar-toast" role="status" aria-live="polite">{hint}</div>}
     </header>
@@ -77,7 +81,7 @@ export function TopBar({
 }
 
 // User chip that opens a small menu with Sign out. Closes on outside tap and Escape.
-function UserMenu({ name, onLogout }: { name?: string; onLogout: () => void }) {
+function UserMenu({ name, hideName, onLogout }: { name?: string; hideName: boolean; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -107,7 +111,7 @@ function UserMenu({ name, onLogout }: { name?: string; onLogout: () => void }) {
         onClick={() => setOpen((o) => !o)}
       >
         <span aria-hidden="true">👤</span>
-        <span className="user-chip-name">{name ?? 'Account'}</span>
+        {!hideName && <span className="user-chip-name">{name ?? 'Account'}</span>}
       </button>
       {open && (
         <div className="user-menu-pop" role="menu">

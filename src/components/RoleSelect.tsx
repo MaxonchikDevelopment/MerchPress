@@ -11,6 +11,7 @@ import { EmptyState } from './ui/EmptyState';
 import type { Staff, UserRole } from '../types/db';
 import { BuildTag } from './BuildTag';
 import { TopBlock } from './TopBar';
+import { repeatsLabel } from '../lib/displayName';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   cashier: 'Cashier',
@@ -97,7 +98,7 @@ export function RoleSelect() {
                   className="btn btn-lg btn-primary"
                   onClick={() => { setRole(lastUser.role); setPicked(lastUser); setError(null); }}
                 >
-                  Continue as {lastUser.name} · {ROLE_LABELS[lastUser.role]}
+                  Continue as {lastUser.name}{repeatsLabel(lastUser.name, ROLE_LABELS[lastUser.role]) ? '' : ` · ${ROLE_LABELS[lastUser.role]}`}
                 </button>
               </div>
             )}
@@ -118,11 +119,14 @@ export function RoleSelect() {
 
         {role && !picked && (
           <>
-            <div className="row" style={{ marginBottom: 'var(--sp-4)' }}>
+            <div style={{ marginBottom: 'var(--sp-4)' }}>
               <button className="btn" onClick={() => setRole(null)}>← Back</button>
-              <SectionLabel style={{ margin: 0 }}>Who are you? · {ROLE_LABELS[role]}</SectionLabel>
             </div>
-            <div className="grid stagger" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
+            <div className="who-heading">
+              <h2>Who are you?</h2>
+              <div className="muted">{ROLE_LABELS[role]}</div>
+            </div>
+            <div className="grid stagger name-grid">
               {peopleForRole.map((p, i) => (
                 <button
                   key={p.id}
@@ -141,7 +145,7 @@ export function RoleSelect() {
         {picked && (
           <>
             <div className="row" style={{ marginBottom: 'var(--sp-4)' }}>
-              <button className="btn" onClick={() => { setPicked(null); setError(null); }}>← Back</button>
+              <button className="btn" onClick={() => { setPicked(null); setRole(null); setError(null); }}>← Back</button>
               <SectionLabel style={{ margin: 0 }}>Enter PIN · {picked.name}</SectionLabel>
             </div>
             <PinPad onSubmit={handlePin} error={error} busy={busy} />

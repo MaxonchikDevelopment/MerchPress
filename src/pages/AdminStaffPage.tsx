@@ -103,35 +103,46 @@ export function AdminStaffPage() {
     );
   }
 
+  // Inactive people sit in a collapsed block below the active list. Same row either way.
+  const active = staff?.filter((p) => p.is_active);
+  const inactive = staff?.filter((p) => !p.is_active);
+  const renderPerson = (p: Staff) => (
+    <PersonRow
+      key={p.id}
+      person={p}
+      isSelf={p.id === adminId}
+      onUpdate={(name, role, isActive) => act((id, ap) => staffUpdate(id, ap, p.id, name, role, isActive))}
+      onSetPin={(newPin) =>
+        act(
+          (id, ap) => staffSetPin(id, ap, p.id, newPin),
+          () => {
+            if (p.id === adminId) setAdminPin(newPin); // keep the cache in step
+          },
+        )
+      }
+    />
+  );
+
   return (
     <div className="grid" style={{ gap: 'var(--sp-5)' }}>
       {error && <Toast message={error} tone="error" />}
       <AddPerson onCreate={(name, role, pin) => act((id, ap) => staffCreate(id, ap, name, role, pin))} />
 
       <section>
-        <SectionLabel>Staff · {staff?.length ?? 0}</SectionLabel>
+        <SectionLabel>Staff · {active?.length ?? 0}</SectionLabel>
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           {staff === null && <EmptyState><Spinner /> Loading…</EmptyState>}
-          {staff?.map((p) => (
-            <PersonRow
-              key={p.id}
-              person={p}
-              isSelf={p.id === adminId}
-              onUpdate={(name, role, active) =>
-                act((id, ap) => staffUpdate(id, ap, p.id, name, role, active))
-              }
-              onSetPin={(newPin) =>
-                act(
-                  (id, ap) => staffSetPin(id, ap, p.id, newPin),
-                  () => {
-                    if (p.id === adminId) setAdminPin(newPin); // keep the cache in step
-                  },
-                )
-              }
-            />
-          ))}
+          {active?.map(renderPerson)}
           {staff?.length === 0 && <EmptyState>No staff yet.</EmptyState>}
         </div>
+        {inactive && inactive.length > 0 && (
+          <details className="inactive-block">
+            <summary>Inactive · {inactive.length}</summary>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginTop: 'var(--sp-3)' }}>
+              {inactive.map(renderPerson)}
+            </div>
+          </details>
+        )}
       </section>
     </div>
   );
@@ -166,24 +177,28 @@ function AddPerson({ onCreate }: { onCreate: (name: string, role: UserRole, pin:
       <h2 style={{ margin: 0 }}>Add person</h2>
       <div>
         <SectionLabel>Name</SectionLabel>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Anna" autoComplete="off" style={{ width: '100%' }} />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Anna" autoComplete="off" aria-label="Name" style={{ width: '100%' }} />
       </div>
       <div>
         <SectionLabel>Role</SectionLabel>
-        <select value={role} onChange={(e) => changeRole(e.target.value as UserRole)} style={{ width: '100%' }}>
+        <select value={role} onChange={(e) => changeRole(e.target.value as UserRole)} aria-label="Role" style={{ width: '100%' }}>
           {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
         </select>
       </div>
       <div>
-        <SectionLabel>PIN (4 digits)</SectionLabel>
+        <SectionLabel>PIN</SectionLabel>
         <input
           value={pin}
           onChange={(e) => setPin(digitsOnly(e.target.value))}
           inputMode="numeric"
           autoComplete="off"
+          placeholder="4 digits"
           aria-label="PIN"
           style={{ width: '100%' }}
         />
+        <div className="muted" style={{ fontSize: 13, marginTop: 'var(--sp-2)' }}>
+          4 digits. Admin PINs cannot be 0000.
+        </div>
       </div>
       <button className="btn btn-primary" onClick={submit} disabled={busy || !name.trim() || pin.length !== 4}>
         {busy ? <><Spinner /> Adding…</> : 'Add person'}

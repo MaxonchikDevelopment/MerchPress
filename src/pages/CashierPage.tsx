@@ -3,6 +3,7 @@ import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
 import { alertReady, SeenSet } from '../lib/notify';
+import { sendHint } from '../lib/sendHint';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
 import { useOrders, type LoadKind } from '../hooks/useOrders';
@@ -199,6 +200,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   }, [designs, frontId, backId]);
 
   const canSubmit = color && size && !busy;
+  const hint = sendHint(color, size);
 
   const submit = async () => {
     if (!canSubmit || !activeEvent) return;
@@ -293,6 +295,9 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
       <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
         {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
       </button>
+      {hint && !busy && (
+        <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
+      )}
       {toast && <Toast message={toast.msg} tone={toast.tone} />}
       {staleNotice && (
         <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>

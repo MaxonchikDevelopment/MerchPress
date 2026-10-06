@@ -56,20 +56,35 @@ function png(size) {
 writeFileSync(`${ICON_DIR}/icon-192.png`, png(192));
 writeFileSync(`${ICON_DIR}/icon-512.png`, png(512));
 
-// ---------- WAV (16-bit PCM mono beep sequence) ----------
-function wav(beeps) {
-  const rate = 44100;
-  const samples = [];
-  for (const b of beeps) {
-    const n = Math.floor((b.ms / 1000) * rate);
-    for (let i = 0; i < n; i++) {
-      const t = i / rate;
-      const env = Math.min(1, Math.min(i, n - i) / (rate * 0.01)); // 10ms fade
-      samples.push(b.freq ? Math.sin(2 * Math.PI * b.freq * t) * env * 0.6 : 0);
-    }
+// ---------- WAV (16-bit PCM mono, harmonic beeps, peak -1 dBFS) ----------
+const RATE = 44100;
+const PEAK = 10 ** (-1 / 20); // -1 dBFS
+const HARMONICS = [1, 0.8, 0.5]; // fundamental, 2nd, 3rd: keeps energy in 1.5-4 kHz on phone speakers
+
+// One beep: 5 ms linear attack, exponential decay (~-40 dB by the end), 3 ms release.
+function beep(freq, ms) {
+  const n = Math.floor((ms / 1000) * RATE);
+  const out = new Float64Array(n);
+  const attack = RATE * 0.005;
+  const release = RATE * 0.003;
+  for (let i = 0; i < n; i++) {
+    const t = i / RATE;
+    let v = 0;
+    HARMONICS.forEach((a, h) => {
+      v += a * Math.sin(2 * Math.PI * freq * (h + 1) * t);
+    });
+    const env = Math.min(1, i / attack) * Math.exp((-4.6 * i) / n) * Math.min(1, (n - i) / release);
+    out[i] = v * env;
   }
-  const data = Buffer.alloc(samples.length * 2);
-  samples.forEach((s, i) => data.writeInt16LE(Math.max(-1, Math.min(1, s)) * 32767, i * 2));
+  return out;
+}
+
+function wav(parts) {
+  const raw = Float64Array.from(parts.flatMap((p) => [...(p.freq ? beep(p.freq, p.ms) : new Float64Array(Math.floor((p.ms / 1000) * RATE)))]));
+  let max = 0;
+  for (const v of raw) max = Math.max(max, Math.abs(v));
+  const data = Buffer.alloc(raw.length * 2);
+  raw.forEach((v, i) => data.writeInt16LE(Math.round((v / max) * PEAK * 32767), i * 2));
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
   header.writeUInt32LE(36 + data.length, 4);
@@ -78,8 +93,8 @@ function wav(beeps) {
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20); // PCM
   header.writeUInt16LE(1, 22); // mono
-  header.writeUInt32LE(rate, 24);
-  header.writeUInt32LE(rate * 2, 28);
+  header.writeUInt32LE(RATE, 24);
+  header.writeUInt32LE(RATE * 2, 28);
   header.writeUInt16LE(2, 32);
   header.writeUInt16LE(16, 34);
   header.write('data', 36);
@@ -87,14 +102,15 @@ function wav(beeps) {
   return Buffer.concat([header, data]);
 }
 
-// New order: two rising beeps. Ready: three urgent beeps.
-writeFileSync(`${SOUND_DIR}/new-order.wav`, wav([
-  { freq: 660, ms: 140 }, { freq: 0, ms: 60 }, { freq: 880, ms: 180 },
-]));
-writeFileSync(`${SOUND_DIR}/ready.wav`, wav([
-  { freq: 988, ms: 130 }, { freq: 0, ms: 70 },
-  { freq: 988, ms: 130 }, { freq: 0, ms: 70 },
-  { freq: 1319, ms: 260 },
-]));
+// New order (1.2 s): rising two-tone, played twice.
+const newOrder = [{ freq: 880, ms: 220 }, { freq: 0, ms: 40 }, { freq: 1175, ms: 300 }, { freq: 0, ms: 40 }];
+writeFileSync(`${SOUND_DIR}/new-order.wav`, wav([...newOrder, ...newOrder]));
+// Ready (1.6 s): urgent triple (short, short, long), played twice.
+const ready = [
+  { freq: 1320, ms: 140 }, { freq: 0, ms: 60 },
+  { freq: 1320, ms: 140 }, { freq: 0, ms: 60 },
+  { freq: 1760, ms: 200 }, { freq: 0, ms: 200 },
+];
+writeFileSync(`${SOUND_DIR}/ready.wav`, wav([...ready, ...ready]));
 
 console.log('Generated icons + sounds.');

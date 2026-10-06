@@ -342,6 +342,46 @@ select:focus-visible {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   }
 }
+/* Cashier tabs: narrow screens only. Both panes stay mounted; the inactive one is hidden with CSS. */
+.cashier-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5)) var(--sp-4);
+  padding: var(--sp-2) var(--sp-5);
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.cashier-tabs .tab {
+  flex: 1;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+.tab-badge {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--status-ready-bg);
+  color: var(--status-ready-ink);
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+}
+@media (min-width: 900px) {
+  .cashier-tabs {
+    display: none;
+  }
+}
+@media (max-width: 899.98px) {
+  .pane-inactive {
+    display: none;
+  }
+}
 .row {
   display: flex;
   gap: var(--sp-3);

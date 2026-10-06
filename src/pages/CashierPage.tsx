@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { readyBadgeCount } from '../lib/readyBadge';
 import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
@@ -21,6 +22,8 @@ import { Toast } from '../components/ui/Toast';
 import { Spinner } from '../components/ui/Spinner';
 import type { Order, ShirtSize } from '../types/db';
 
+type CashierTab = 'new' | 'queue';
+
 export function CashierPage() {
   const { user, activeEvent } = useSession();
   const eventId = activeEvent?.id ?? null;
@@ -32,6 +35,8 @@ export function CashierPage() {
   const [overlay, setOverlay] = useState<{ title: string; subtitle?: string } | null>(null);
   const [completing, setCompleting] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [tab, setTab] = useState<CashierTab>('new');
+  const contentRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const onReady = useCallback(
@@ -103,6 +108,14 @@ export function CashierPage() {
     [orders, user?.id],
   );
 
+  const readyBadge = readyBadgeCount(orders, userId);
+
+  // Both panes stay mounted (the draft lives in NewOrderForm); a new tab starts at the top.
+  const selectTab = (t: CashierTab) => {
+    setTab(t);
+    contentRef.current?.scrollTo({ top: 0 });
+  };
+
   const complete = async (order: Order) => {
     const id = order.id;
     if (completing.includes(id)) return; // double-tap guard
@@ -125,11 +138,32 @@ export function CashierPage() {
     <div className="app">
       <TopBar title="Cashier" soundRetry />
       <OfflineBanner connected={connected} />
-      <div className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+        <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
+          <button
+            role="tab"
+            aria-selected={tab === 'new'}
+            className={tab === 'new' ? 'tab tab-active' : 'tab'}
+            onClick={() => selectTab('new')}
+          >
+            New order
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === 'queue'}
+            className={tab === 'queue' ? 'tab tab-active' : 'tab'}
+            onClick={() => selectTab('queue')}
+          >
+            Queue
+            {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
+          </button>
+        </div>
         <div className="two-col">
-          <NewOrderForm designs={activeDesigns} />
+          <div className={tab === 'new' ? undefined : 'pane-inactive'}>
+            <NewOrderForm designs={activeDesigns} />
+          </div>
 
-          <section>
+          <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>

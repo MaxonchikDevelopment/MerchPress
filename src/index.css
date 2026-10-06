@@ -1,46 +1,60 @@
 /* =========================================================================
-   MerchPress Queue — Hyrox-tuned dark design system
-   Maxona's structure (surface hierarchy, zinc-style neutrals, semantic chips,
-   radii, soft elevation, calm motion) rendered dark with a Hyrox lime accent.
+   MerchPress Queue: Hyrox black and yellow design system.
+   One token group. Near-black neutral surfaces, brand yellow as the only
+   accent (set once in --accent, everything else derives from it), black ink on
+   yellow. Statuses never use yellow. System font stack only, no font files.
    Touch targets are scaled UP for booth/glove use.
    ========================================================================= */
 
 :root {
-  /* ---- Surfaces (Maxona white→zinc hierarchy, inverted to dark) ---- */
-  --surface-page: #0b0c0e;
-  --surface-card: #15171b;
-  --surface-raised: #1e2127;
-  --surface-overlay: rgba(11, 12, 14, 0.96);
-  --border-subtle: #2a2e36;
-  --border-strong: #3a3f4a;
+  /* ---- Surfaces: neutral near-black ---- */
+  --surface-page: #0a0a0a;
+  --surface-card: #141414;
+  --surface-raised: #1f1f1f;
+  --surface-bar: #101010; /* header, tab bar, bottom bar: opaque */
+  --surface-overlay: rgba(10, 10, 10, 0.96);
+  --border-subtle: #2c2c2c;
+  --border-strong: #454545;
 
-  /* ---- Neutral text ramp (zinc-equivalent, light-on-dark) ---- */
-  --text-primary: #f4f5f7;
-  --text-secondary: #b4bac4;
-  --text-muted: #7c828e;
-  --text-faint: #545a64;
+  /* ---- Text ramp (all at least 4.5:1 on card and page) ---- */
+  --text-primary: #f5f5f5;
+  --text-secondary: #b8b8b8;
+  --text-muted: #8c8c8c;
+  --text-faint: #7a7a7a;
 
-  /* ---- Accent — Hyrox lime (primary actions + new-order urgency) ---- */
-  --accent: #c5ff00;
-  --accent-hover: #d4ff33;
-  --accent-press: #aee000;
-  --accent-ink: #0b0c0e;
-  --accent-soft: rgba(197, 255, 0, 0.14);
+  /* ---- Accent: Hyrox yellow. PLACEHOLDER VALUE, the owner tunes it here and only here ---- */
+  --accent: #ffd800;
+  --accent-ink: #0a0a0a; /* black on yellow, about 14:1 */
+  --accent-hover: color-mix(in srgb, var(--accent) 86%, white);
+  --accent-press: color-mix(in srgb, var(--accent) 86%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-ring: color-mix(in srgb, var(--accent) 55%, transparent);
 
-  /* ---- Semantic status (black ink on bright fills for contrast) ---- */
-  --status-new-bg: #c5ff00;
-  --status-new-ink: #0b0c0e;
-  --status-progress-bg: #f59e0b;
-  --status-progress-ink: #0b0c0e;
-  --status-ready-bg: #38bdf8;
-  --status-ready-ink: #0b0c0e;
-  --status-done-bg: #3a3f4a;
-  --status-done-ink: #c7ccd4;
-  --status-cancelled-bg: #3a3f4a;
-  --status-cancelled-ink: #c7ccd4;
-  --danger: #ef4444;
-  --warn: #f59e0b;
+  /* ---- Ready alert (full-screen flood), tunable apart from the buttons ---- */
+  --alert-bg: var(--accent);
+  --alert-ink: var(--accent-ink);
+
+  /* ---- Semantic status. Fills carry black ink, none of them is yellow ---- */
+  --status-new-bg: #a78bfa; /* violet */
+  --status-new-ink: #0a0a0a;
+  --status-progress-bg: #38bdf8; /* sky blue */
+  --status-progress-ink: #0a0a0a;
+  --status-ready-bg: #34d399; /* green */
+  --status-ready-ink: #0a0a0a;
+  --status-done-bg: #383838; /* grey */
+  --status-done-ink: #d0d0d0;
+  --status-cancelled-bg: #5a1f1f; /* dark red tint */
+  --status-cancelled-ink: #fecaca;
+  --danger: #ef4444; /* text and edges on dark */
+  --danger-bg: #dc2626; /* filled danger button, white ink 4.8:1 */
+  --danger-ink: #ffffff;
+  --danger-text: #ff6b6b;
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+  --warn: #ff8a3d; /* orange, kept away from the yellow accent */
   --ok: #34d399;
+
+  /* ---- Dimmed (advisory) swatches in the colour picker ---- */
+  --dim-opacity: 0.45;
 
   /* ---- Spacing scale (4px base) ---- */
   --sp-1: 4px;
@@ -58,7 +72,7 @@
   --r-pill: 999px;
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --ring-focus: 0 0 0 3px var(--accent-soft);
+  --ring-focus: 0 0 0 3px var(--accent-ring);
 
   /* ---- Motion ---- */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -70,7 +84,11 @@
   --touch-min: 56px;
   --touch-lg: 72px;
 
+  /* ---- Typography: system stack only (no font files, renders offline) ---- */
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --weight-heading: 800;
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.1em;
   color-scheme: dark;
 }
 
@@ -274,9 +292,10 @@ select:focus-visible {
 }
 .topbar h1 {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--weight-heading);
   margin: 0;
-  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .topbar h1,
 .topbar .sub {
@@ -612,18 +631,21 @@ select:focus-visible {
   flex: 1;
 }
 
+h1,
+h2 {
+  font-weight: var(--weight-heading);
+  letter-spacing: var(--tracking-tight);
+}
 h2 {
   font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
 }
 
 /* Maxona section-heading idiom — quiet uppercase label */
 .label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-label);
   color: var(--text-muted);
   margin-bottom: var(--sp-2);
 }
@@ -638,7 +660,7 @@ h2 {
   border-radius: var(--r-pill);
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .pill {
@@ -687,6 +709,7 @@ h2 {
 .alert-title {
   font-size: 44px;
   font-weight: 900;
+  letter-spacing: var(--tracking-tight);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -940,7 +963,7 @@ h2 {
 .who-heading h2 {
   margin: 0;
   font-size: 30px;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tracking-tight);
 }
 
 /* Selects: same height as inputs, own arrow (no native chrome) */

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSession } from '../context/SessionContext';
 import { TopBar } from '../components/TopBar';
 import { AdminEventsPage } from './AdminEventsPage';
 import { AdminDesignsPage } from './AdminDesignsPage';
@@ -11,7 +12,9 @@ type Tab = 'events' | 'designs' | 'staff' | 'stats';
 const TAB_LABELS: Record<Tab, string> = { events: 'Events', designs: 'Designs', staff: 'Staff', stats: 'Stats' };
 
 export function AdminPage() {
-  const [tab, setTab] = useState<Tab>('designs');
+  const { activeEvent } = useSession();
+  // App mounts this page only after the session has loaded, so activeEvent is settled here.
+  const [tab, setTab] = useState<Tab>(activeEvent ? 'designs' : 'events');
 
   return (
     <div className="app">

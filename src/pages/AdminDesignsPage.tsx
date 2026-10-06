@@ -101,6 +101,9 @@ export function AdminDesignsPage() {
 
         <div>
           <SectionLabel>Compatible colors</SectionLabel>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 'var(--sp-2)' }}>
+            None selected means all colors are allowed.
+          </div>
           <ColorToggles palette={shirtColors} selected={colors} onToggle={toggleColor} />
         </div>
 

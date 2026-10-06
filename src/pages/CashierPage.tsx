@@ -5,6 +5,7 @@ import { orderSummary } from '../lib/orderSummary';
 import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus, staffName } from '../lib/orderStatus';
+import { cashierQueue } from '../lib/cashierQueue';
 import { cashierCancelNotice } from '../lib/cashierCancelNotice';
 import { NOTICE_MS } from '../lib/cancelNotice';
 import { alertReady, SeenSet } from '../lib/notify';
@@ -110,28 +111,8 @@ export function CashierPage() {
   }, []);
   const { askCancel, dialog: cancelDialog } = useCancelOrder(userId, showError, () => void reload());
 
-  // This cashier's own orders still waiting for or being worked by press.
-  const myOpenOrders = useMemo(
-    () =>
-      orders
-        .filter((o) => (o.status === 'new' || o.status === 'in_progress') && o.created_by === userId)
-        .sort((a, b) => a.created_at.localeCompare(b.created_at)), // FIFO
-    [orders, userId],
-  );
-
-  const readyOrders = useMemo(
-    () =>
-      orders
-        .filter((o) => o.status === 'ready')
-        .sort((a, b) => {
-          // My orders first, then FIFO by ready time.
-          const mineA = a.created_by === user?.id ? 0 : 1;
-          const mineB = b.created_by === user?.id ? 0 : 1;
-          if (mineA !== mineB) return mineA - mineB;
-          return (a.ready_at ?? '').localeCompare(b.ready_at ?? '');
-        }),
-    [orders, user?.id],
-  );
+  // Queue shows only this cashier's own orders (interface rule; the server does not check).
+  const { inProgress: myOpenOrders, ready: readyOrders } = useMemo(() => cashierQueue(orders, userId), [orders, userId]);
 
   const readyBadge = readyBadgeCount(orders, userId);
 
@@ -202,19 +183,10 @@ export function CashierPage() {
 
           <section className={tab === 'queue' ? undefined : 'pane-inactive'}>
             {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
-            <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
-            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
-              {myOpenOrders.map((o) => (
-                <OrderCard key={o.id} order={o} designs={designs} showClaimedBy>
-                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
-                </OrderCard>
-              ))}
-              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
-            </div>
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
-            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
               {readyOrders.map((o) => (
-                <OrderCard key={o.id} order={o} designs={designs} highlight={o.created_by === user?.id}>
+                <OrderCard key={o.id} order={o} designs={designs}>
                   <button
                     className="btn btn-lg btn-ok"
                     disabled={completing.includes(o.id)}
@@ -225,7 +197,16 @@ export function CashierPage() {
                   <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
-              {readyOrders.length === 0 && <EmptyState>Nothing ready yet.</EmptyState>}
+              {readyOrders.length === 0 && <EmptyState>None of your orders is ready yet.</EmptyState>}
+            </div>
+            <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+              {myOpenOrders.map((o) => (
+                <OrderCard key={o.id} order={o} designs={designs} showClaimedBy>
+                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
+                </OrderCard>
+              ))}
+              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
             </div>
           </section>
         </div>

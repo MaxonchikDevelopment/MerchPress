@@ -3,7 +3,7 @@ import { supabase, designPhotoUrl } from '../lib/supabase';
 import { eventOptions } from '../lib/eventOptions';
 import { errorMessage } from '../lib/imageUpload';
 import { initials } from '../lib/initials';
-import { hasNoMatch, sameList, tickAll, tickKey, tickedKeys, toggleKey } from '../lib/compatMatrix';
+import { hasNoMatch, sameList, tickAll, tickKey, tickedKeys, toStored, toggleKey } from '../lib/compatMatrix';
 import { useEvents } from '../hooks/useEvents';
 import { useDesigns } from '../hooks/useDesigns';
 import { useSession } from '../context/SessionContext';
@@ -12,6 +12,7 @@ import { Toast } from '../components/ui/Toast';
 import type { Design } from '../types/db';
 
 const LAST_COLOR_HINT = 'At least one colour must stay ticked.';
+const PENDING_HINT = 'Pick at least one colour';
 
 // Which shirt colours each design is printed on, on one screen. Writes go straight to
 // designs.compatible_colors (policy designs_all), one at a time per design.
@@ -35,6 +36,12 @@ export function AdminCompatPage() {
   const desired = useRef(new Map<string, string[]>());
   const running = useRef(new Map<string, Promise<boolean>>());
   const stored = (d: Design) => view[d.id] ?? d.compatible_colors;
+
+  // Rows cleared with "Clear": shown with no ticks, nothing written until a colour is ticked.
+  // Local only, so leaving the screen or switching event drops it.
+  const [pending, setPending] = useState<string[]>([]);
+  useEffect(() => setPending([]), [eventId]);
+  const unpend = (id: string) => setPending((p) => p.filter((x) => x !== id));
 
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -91,12 +98,18 @@ export function AdminCompatPage() {
   };
 
   const onToggle = (d: Design, key: string) => {
+    if (pending.includes(d.id)) {
+      unpend(d.id);
+      void save(d, toStored([key], keys)).then((ok) => ok && flash(`Saved: ${d.name}`, 'success'));
+      return;
+    }
     const { next, blocked } = toggleKey(stored(d), keys, key);
     if (blocked) return flash(LAST_COLOR_HINT, 'error');
     void save(d, next).then((ok) => ok && flash(`Saved: ${d.name}`, 'success'));
   };
 
   const onAll = (d: Design) => {
+    unpend(d.id);
     if (sameList(stored(d), tickAll())) return;
     void save(d, tickAll()).then((ok) => ok && flash(`Saved: ${d.name}`, 'success'));
   };
@@ -159,7 +172,8 @@ export function AdminCompatPage() {
               <tbody>
                 {rows.map((d) => {
                   const list = stored(d);
-                  const ticked = tickedKeys(list, keys);
+                  const isPending = pending.includes(d.id);
+                  const ticked = isPending ? [] : tickedKeys(list, keys);
                   return (
                     <tr key={d.id} className={d.is_active ? undefined : 'compat-hidden'}>
                       <th scope="row" className="compat-first">
@@ -168,11 +182,20 @@ export function AdminCompatPage() {
                           <div className="compat-idtext">
                             <div className="compat-name">{d.name}</div>
                             {!d.is_active && <span className="badge compat-tag">Hidden</span>}
-                            {hasNoMatch(list, keys) && (
+                            {isPending && <div className="compat-warn">{PENDING_HINT}</div>}
+                            {!isPending && hasNoMatch(list, keys) && (
                               <div className="compat-warn">⚠ No colour of this event matches</div>
                             )}
                             <button className="compat-link" onClick={() => onAll(d)} aria-label={`Tick all colours for ${d.name}`}>
                               All
+                            </button>
+                            <button
+                              className="compat-link"
+                              onClick={() => setPending((p) => (p.includes(d.id) ? p : [...p, d.id]))}
+                              disabled={isPending}
+                              aria-label={`Clear all colours for ${d.name}`}
+                            >
+                              Clear
                             </button>
                           </div>
                         </div>

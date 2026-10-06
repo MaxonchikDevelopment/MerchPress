@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBusy } from '../hooks/useBusy';
 import { claimOrder, setOrderStatus, staffName } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
 import { cancelNotice, NOTICE_MS } from '../lib/cancelNotice';
@@ -81,6 +82,8 @@ export function PressPage() {
         .sort((a, b) => a.created_at.localeCompare(b.created_at)), // FIFO
     [orders],
   );
+
+  useBusy('status', busyIds.length > 0); // claim or status change in flight: no automatic reload
 
   const setStatus = async (order: Order, status: OrderStatus) => {
     const id = order.id;

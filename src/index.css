@@ -172,12 +172,16 @@ button {
   border-color: var(--accent);
   color: var(--accent-ink);
 }
-.btn-primary:not(:disabled):hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+@media (hover: hover) {
+  .btn-primary:not(:disabled):hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: var(--accent-ink);
+  }
 }
 .btn-primary:active {
   background: var(--accent-press);
+  color: var(--accent-ink);
 }
 
 .btn-ok {
@@ -493,10 +497,17 @@ select:focus-visible {
   text-transform: capitalize;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.tab:hover {
-  color: var(--text-primary);
+/* Hover only where a pointer can really hover: on touch the last tapped element keeps :hover. */
+@media (hover: hover) {
+  .tab:not(.tab-active):hover {
+    color: var(--text-primary);
+  }
 }
-.tab-active {
+/* The active tab wins in every state: dark ink on the yellow surface. */
+.tab-active,
+.tab-active:hover,
+.tab-active:focus-visible,
+.tab-active:active {
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -1241,7 +1252,10 @@ select {
     background var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease);
 }
-.compat-cell[aria-pressed='true'] {
+.compat-cell[aria-pressed='true'],
+.compat-cell[aria-pressed='true']:hover,
+.compat-cell[aria-pressed='true']:focus-visible,
+.compat-cell[aria-pressed='true']:active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
@@ -1278,7 +1292,10 @@ select {
   font-weight: 700;
   cursor: pointer;
 }
-.orders-chip-active {
+.orders-chip-active,
+.orders-chip-active:hover,
+.orders-chip-active:focus-visible,
+.orders-chip-active:active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 
 // Full-screen attention overlay shown when an order becomes ready for this
-// cashier. Big, tappable to dismiss. Dark scrim with a pulsing lime accent ring.
+// cashier. Big, tappable to dismiss. Dark scrim with a pulsing accent ring.
 export function AlertOverlay({
   title,
   subtitle,

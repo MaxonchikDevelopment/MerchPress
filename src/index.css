@@ -293,6 +293,14 @@ select:focus-visible {
   /* Brand stripe under the header block. Outside the box, so no layout change. */
   box-shadow: 0 2px 0 var(--accent);
 }
+.top-notices {
+  display: grid;
+  gap: var(--sp-2);
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+}
 .topbar-title {
   flex: 1 1 0;
   min-width: 0;

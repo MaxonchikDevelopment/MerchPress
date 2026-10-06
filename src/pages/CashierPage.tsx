@@ -4,7 +4,9 @@ import { readyBadgeCount } from '../lib/readyBadge';
 import { orderSummary } from '../lib/orderSummary';
 import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
-import { setOrderStatus } from '../lib/orderStatus';
+import { setOrderStatus, staffName } from '../lib/orderStatus';
+import { cashierCancelNotice } from '../lib/cashierCancelNotice';
+import { NOTICE_MS } from '../lib/cancelNotice';
 import { alertReady, SeenSet } from '../lib/notify';
 import { sendHint } from '../lib/sendHint';
 import { printColors, type PrintMode } from '../lib/printColors';
@@ -84,7 +86,22 @@ export function CashierPage() {
     [userId, seenReady],
   );
 
-  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded });
+  // Cancel notices live apart from the error toast so neither overwrites the other.
+  const [notices, setNotices] = useState<{ key: string; text: string }[]>([]);
+  const dismissNotice = useCallback((key: string) => setNotices((l) => l.filter((n) => n.key !== key)), []);
+  const onCancelled = useCallback(
+    async (next: Order, prev: Order | null) => {
+      const n = cashierCancelNotice(prev, next, userId);
+      if (!n) return;
+      const name = n.by ? await staffName(n.by) : null;
+      const text = `Order #${n.orderNo} was cancelled by ${name ?? 'the press'}. Check with the press.`;
+      setNotices((l) => [...l.filter((x) => x.key !== next.id), { key: next.id, text }]);
+      setTimeout(() => dismissNotice(next.id), NOTICE_MS);
+    },
+    [userId, dismissNotice],
+  );
+
+  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded, onCancelled });
 
   const showError = useCallback((message: string) => {
     setToast(message);
@@ -166,6 +183,16 @@ export function CashierPage() {
             {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
           </button>
         </div>
+        {notices.length > 0 && (
+          <div className="top-notices">
+            {notices.map((n) => (
+              <div key={n.key} className="toast toast-error" role="status" style={{ justifyContent: 'space-between' }}>
+                <span>{n.text}</span>
+                <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
+              </div>
+            ))}
+          </div>
+        )}
       </TopBlock>
       <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">

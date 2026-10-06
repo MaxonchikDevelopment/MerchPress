@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { readyBadgeCount } from '../lib/readyBadge';
+import { orderSummary } from '../lib/orderSummary';
 import { eventOptions } from '../lib/eventOptions';
 import { createOrder } from '../lib/createOrder';
 import { setOrderStatus } from '../lib/orderStatus';
@@ -215,7 +216,7 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
   const [staleNotice, setStaleNotice] = useState<string | null>(null); // stays until dismissed
 
-  const { colors, sizes } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
+  const { colors, sizes, colorLabel } = useMemo(() => eventOptions(activeEvent), [activeEvent]);
   // A pick the event no longer offers (colours edited mid-draft) counts as unselected.
   const color = colors.some((c) => c.key === pickedColor) ? pickedColor : null;
   const size = sizes.find((s) => s === pickedSize) ?? null;
@@ -235,6 +236,12 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
 
   const canSubmit = color && size && !busy;
   const hint = sendHint(color, size);
+  const summary = orderSummary({
+    colorLabel: color ? colorLabel(color) : null,
+    size,
+    frontName: designs.find((d) => d.id === frontId)?.name ?? null,
+    backName: designs.find((d) => d.id === backId)?.name ?? null,
+  });
 
   const submit = async () => {
     if (!canSubmit || !activeEvent) return;
@@ -322,16 +329,10 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
           enterKeyHint="done"
           autoComplete="off"
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          style={{ width: '100%' }}
+          style={{ width: '100%', scrollMarginBottom: 160 }}
         />
       </div>
 
-      <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
-        {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
-      </button>
-      {hint && !busy && (
-        <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
-      )}
       {toast && <Toast message={toast.msg} tone={toast.tone} />}
       {staleNotice && (
         <div className="toast toast-error" role="alert" style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -339,6 +340,16 @@ function NewOrderForm({ designs }: { designs: ReturnType<typeof useDesigns>['des
           <button className="btn btn-text" onClick={() => setStaleNotice(null)}>Dismiss</button>
         </div>
       )}
+
+      <div className="send-bar">
+        {summary && <div className="send-summary">{summary}</div>}
+        <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%' }}>
+          {busy ? <><Spinner /> Sending…</> : 'Send to press →'}
+        </button>
+        {hint && !busy && (
+          <div className="muted" style={{ textAlign: 'center', fontSize: 14 }}>{hint}</div>
+        )}
+      </div>
     </section>
   );
 }

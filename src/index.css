@@ -372,6 +372,26 @@ select:focus-visible {
   line-height: 22px;
   text-align: center;
 }
+/* Send bar: sticky (never fixed) at the bottom of the scrolling .content, inside the New order card. */
+.send-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0 calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4));
+  padding: var(--sp-3) var(--sp-4);
+  padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom));
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 var(--r-card) var(--r-card);
+}
+.send-summary {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
 @media (min-width: 900px) {
   .cashier-tabs {
     display: none;

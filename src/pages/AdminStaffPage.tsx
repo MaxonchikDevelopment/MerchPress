@@ -237,30 +237,29 @@ function PersonRow({
 
   return (
     <div className="card grid" style={{ gap: 'var(--sp-3)', opacity: person.is_active ? 1 : 0.7 }}>
-      <div className="row">
-        <div style={{ fontSize: 18, fontWeight: 800 }}>{person.name}</div>
+      <div className="person-head">
+        <div className="person-name">{person.name}</div>
         <span className="pill">{ROLE_LABELS[person.role]}</span>
         {!person.is_active && <span className="pill">Inactive</span>}
         {isSelf && <span className="pill">You</span>}
-        <div className="spacer" />
-        {mode === 'view' && (
-          <>
-            <button className="btn" onClick={() => { setName(person.name); setRole(person.role); setMode('edit'); }}>Edit</button>
-            <button className="btn" onClick={() => { setPin(''); setMode('pin'); }}>Set PIN</button>
-            <button
-              className="btn btn-secondary"
-              // Deactivating yourself would lock you out of this tab.
-              disabled={busy || (isSelf && person.is_active)}
-              onClick={() => {
-                if (person.is_active) setConfirming(true);
-                else void run(() => onUpdate(person.name, person.role, true));
-              }}
-            >
-              {person.is_active ? 'Deactivate' : 'Activate'}
-            </button>
-          </>
-        )}
       </div>
+      {mode === 'view' && (
+        <div className="btn-row">
+          <button className="btn btn-compact" onClick={() => { setName(person.name); setRole(person.role); setMode('edit'); }}>Edit</button>
+          <button className="btn btn-compact" onClick={() => { setPin(''); setMode('pin'); }}>Set PIN</button>
+          <button
+            className="btn btn-compact btn-secondary"
+            // Deactivating yourself would lock you out of this tab.
+            disabled={busy || (isSelf && person.is_active)}
+            onClick={() => {
+              if (person.is_active) setConfirming(true);
+              else void run(() => onUpdate(person.name, person.role, true));
+            }}
+          >
+            {person.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      )}
 
       {mode === 'edit' && (
         <div className="grid">
@@ -268,11 +267,11 @@ function PersonRow({
           <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} aria-label="Role" disabled={isSelf} style={{ width: '100%' }}>
             {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
-          <div className="row">
-            <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={() => run(() => onUpdate(name, role, person.is_active))}>
+          <div className="btn-row">
+            <button className="btn btn-compact btn-primary" disabled={busy || !name.trim()} onClick={() => run(() => onUpdate(name, role, person.is_active))}>
               {busy ? <><Spinner /> Saving…</> : 'Save'}
             </button>
-            <button className="btn" disabled={busy} onClick={() => setMode('view')}>Cancel</button>
+            <button className="btn btn-compact" disabled={busy} onClick={() => setMode('view')}>Cancel</button>
           </div>
         </div>
       )}
@@ -288,11 +287,11 @@ function PersonRow({
             aria-label="New PIN"
             style={{ width: '100%' }}
           />
-          <div className="row">
-            <button className="btn btn-primary" disabled={busy || pin.length !== 4} onClick={() => run(() => onSetPin(pin))}>
+          <div className="btn-row">
+            <button className="btn btn-compact btn-primary" disabled={busy || pin.length !== 4} onClick={() => run(() => onSetPin(pin))}>
               {busy ? <><Spinner /> Saving…</> : 'Set PIN'}
             </button>
-            <button className="btn" disabled={busy} onClick={() => setMode('view')}>Cancel</button>
+            <button className="btn btn-compact" disabled={busy} onClick={() => setMode('view')}>Cancel</button>
           </div>
         </div>
       )}

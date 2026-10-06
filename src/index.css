@@ -894,6 +894,39 @@ h2 {
   font-size: 16px;
 }
 
+/* Staff rows: name line, then one row of equal compact buttons */
+.person-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.person-name {
+  font-size: 18px;
+  font-weight: 800;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-head .pill {
+  flex: none;
+}
+.btn-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--sp-2);
+}
+.btn.btn-compact {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--sp-2);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
 /* Login: name tiles in two columns; an odd last tile (or a single one) spans the full row */
 .name-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

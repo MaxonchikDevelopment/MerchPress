@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { pinKeyAction } from '../lib/pinKey';
 
 // 4-digit numeric pad. MVP-only auth — not strong security.
 export function PinPad({
@@ -21,6 +22,29 @@ export function PinPad({
       setPin('');
     }
   };
+
+  // Laptop keyboard. Exists only while the pad is mounted. Enter submits only a full
+  // PIN, which the 4th digit has already sent, so it never submits a partial one.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target instanceof HTMLElement ? e.target : null;
+      const action = pinKeyAction({
+        key: e.key,
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        altKey: e.altKey,
+        repeat: e.repeat,
+        targetTag: t?.tagName,
+        targetEditable: t?.isContentEditable,
+      });
+      if (!action || busy) return;
+      if (action.kind === 'digit') push(action.digit);
+      else if (action.kind === 'backspace') setPin((p) => p.slice(0, -1));
+      else if (pin.length === 4) onSubmit(pin);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 

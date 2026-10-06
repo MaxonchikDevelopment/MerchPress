@@ -120,6 +120,12 @@ function UserMenu({ name, onLogout }: { name?: string; onLogout: () => void }) {
   );
 }
 
+// One non-scrolling block above .content: header, offline banner and (Cashier) the tab bar.
+// Opaque, and the only place that pads for the notch / Dynamic Island and the side insets.
+export function TopBlock({ children }: { children: ReactNode }) {
+  return <div className="top-block">{children}</div>;
+}
+
 // Amber banner shown when the realtime connection is down — reads as "degraded".
 export function OfflineBanner({ connected }: { connected: boolean }) {
   if (connected) return null;

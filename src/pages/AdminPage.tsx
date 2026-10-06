@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSession } from '../context/SessionContext';
-import { TopBar } from '../components/TopBar';
+import { TopBar, TopBlock } from '../components/TopBar';
 import { AdminEventsPage } from './AdminEventsPage';
 import { AdminDesignsPage } from './AdminDesignsPage';
 import { AdminStaffPage } from './AdminStaffPage';
@@ -18,18 +18,20 @@ export function AdminPage() {
 
   return (
     <div className="app">
-      <TopBar title="Admin">
-        {(['events', 'designs', 'staff', 'stats'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            className={tab === t ? 'tab tab-active' : 'tab'}
-            onClick={() => setTab(t)}
-            aria-current={tab === t ? 'page' : undefined}
-          >
-            {TAB_LABELS[t]}
-          </button>
-        ))}
-      </TopBar>
+      <TopBlock>
+        <TopBar title="Admin">
+          {(['events', 'designs', 'staff', 'stats'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              className={tab === t ? 'tab tab-active' : 'tab'}
+              onClick={() => setTab(t)}
+              aria-current={tab === t ? 'page' : undefined}
+            >
+              {TAB_LABELS[t]}
+            </button>
+          ))}
+        </TopBar>
+      </TopBlock>
       <div className="content page-enter" key={tab} style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         {tab === 'events' && <AdminEventsPage />}
         {tab === 'designs' && <AdminDesignsPage />}

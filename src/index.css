@@ -84,6 +84,12 @@ body,
   height: 100%;
   margin: 0;
 }
+/* Only .content scrolls. The document never does, so iOS has nothing to rubber-band. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 
 body {
   background-color: var(--surface-page);
@@ -250,13 +256,17 @@ select:focus-visible {
   flex-wrap: wrap;
   gap: var(--sp-2) var(--sp-3);
   padding: var(--sp-2) var(--sp-4);
-  padding-top: calc(var(--sp-2) + env(safe-area-inset-top));
-  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
-  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-subtle);
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  position: relative;
+}
+/* One non-scrolling block above .content: header, offline banner, Cashier tab bar.
+   Opaque, and the only place that pads for the notch and the side insets. */
+.top-block {
+  flex: none;
+  position: relative;
+  z-index: 10;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  background: color-mix(in srgb, var(--surface-card) 86%, var(--surface-page));
 }
 .topbar-title {
   flex: 1 1 0;
@@ -368,7 +378,6 @@ select:focus-visible {
     flex-wrap: nowrap;
     gap: var(--sp-3);
     padding: var(--sp-3) var(--sp-5);
-    padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
   }
   .topbar-title {
     flex: 1 1 auto;
@@ -420,8 +429,12 @@ select:focus-visible {
 
 .content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: var(--sp-5);
+  padding-left: calc(var(--sp-5) + env(safe-area-inset-left));
+  padding-right: calc(var(--sp-5) + env(safe-area-inset-right));
   padding-bottom: calc(var(--sp-6) + env(safe-area-inset-bottom));
 }
 
@@ -462,16 +475,11 @@ select:focus-visible {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   }
 }
-/* Cashier tabs: narrow screens only. Both panes stay mounted; the inactive one is hidden with CSS. */
+/* Cashier tabs: narrow screens only, inside .top-block. Both panes stay mounted; the inactive one is hidden with CSS. */
 .cashier-tabs {
   display: flex;
   gap: var(--sp-1);
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  margin: calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5)) var(--sp-4);
-  padding: var(--sp-2) var(--sp-5);
-  background: var(--surface-card);
+  padding: var(--sp-2) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);
 }
 .cashier-tabs .tab {

@@ -16,7 +16,7 @@ import { DesignPicker } from '../components/DesignPicker';
 import { OrderCard } from '../components/OrderCard';
 import { SoundGate } from '../components/SoundGate';
 import { AlertOverlay } from '../components/AlertOverlay';
-import { TopBar, OfflineBanner } from '../components/TopBar';
+import { TopBar, TopBlock, OfflineBanner } from '../components/TopBar';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Toast } from '../components/ui/Toast';
@@ -130,7 +130,7 @@ export function CashierPage() {
   if (!activeEvent) {
     return (
       <div className="app">
-        <TopBar title="Cashier" />
+        <TopBlock><TopBar title="Cashier" /></TopBlock>
         <div className="content"><EmptyState>No active event. Ask an admin to activate one.</EmptyState></div>
       </div>
     );
@@ -138,9 +138,9 @@ export function CashierPage() {
 
   return (
     <div className="app">
-      <TopBar title="Cashier" soundRetry />
-      <OfflineBanner connected={connected} />
-      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <TopBlock>
+        <TopBar title="Cashier" soundRetry />
+        <OfflineBanner connected={connected} />
         <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
           <button
             role="tab"
@@ -160,6 +160,8 @@ export function CashierPage() {
             {readyBadge > 0 && <span className="tab-badge" aria-label={`${readyBadge} ready`}>{readyBadge}</span>}
           </button>
         </div>
+      </TopBlock>
+      <div ref={contentRef} className="content page-enter" style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div className="two-col">
           <div className={tab === 'new' ? undefined : 'pane-inactive'}>
             <NewOrderForm designs={activeDesigns} />

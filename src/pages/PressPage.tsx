@@ -132,12 +132,13 @@ export function PressPage() {
         {notices.map((n) => (
           <div
             key={n.key}
-            className="toast toast-error"
+            className="toast toast-error toast-notice"
             role="status"
             style={{ marginBottom: 'var(--sp-3)', justifyContent: 'space-between' }}
           >
             <span>{n.text}</span>
             <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
+            <span className="notice-bar" aria-hidden="true" style={{ animationDuration: `${NOTICE_MS}ms` }} />
           </div>
         ))}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">

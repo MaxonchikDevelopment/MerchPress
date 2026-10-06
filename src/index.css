@@ -920,7 +920,35 @@ h2 {
   animation: shake 0.4s var(--ease) both;
 }
 
+/* Cancel notices: a thin bar along the bottom edge shrinks over NOTICE_MS (duration set inline). */
+@keyframes notice-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.toast-notice {
+  position: relative;
+  overflow: hidden;
+}
+.notice-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  pointer-events: none;
+  background: currentColor;
+  transform-origin: left;
+  animation: notice-countdown linear forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .notice-bar {
+    display: none;
+  }
   *,
   *::before,
   *::after {
@@ -1231,4 +1259,27 @@ select {
     min-width: 200px;
     max-width: 200px;
   }
+}
+
+/* Admin Orders: status filter chips (tokens only) */
+.orders-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.orders-chip {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.orders-chip-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }

@@ -30,6 +30,7 @@ This docs commit also deletes `supabase/seed.sql` and rewrites README and the au
 | `gdansk-fix-1` | Wake lock re-acquires when the system releases it (stops after 3 quick failures until the next visibilitychange or a tap); state exposed via `useSyncExternalStore`; TopBar shows a "Screen may sleep" pill, tap to retry. No device test yet. |
 | `gdansk-fix-1` (R3) | Wake lock `pending` state, pill only on Press and Cashier; a losing Claim now shows "Already taken by <name>" and refetches (client-side `claimOrder`); concurrency live test `scripts/r3-livetest.mjs`, see `R3_REPORT.md`. |
 | `gdansk-fix-2` (R5) | Alert sounds regenerated (1.2 s and 1.6 s, harmonics, -1 dBFS) with `scripts/check-sounds.mjs`; "Test sound" button in TopBar on Press and Cashier. Audibility not verified, devices only. See `R5_REPORT.md`. |
+| `gdansk-fix-3` (R6) | Pill shows "Set Auto-Lock to Never" when wake lock is unsupported (title was invisible on touch); a Claim that lands on a `ready` row is now `taken` (or `claimed` if it is ours) instead of "Check the connection"; `scripts/check-claim-result.ts`, see `R6_REPORT.md`. |
 
 ## Deferred
 | Item | Why | Return condition |

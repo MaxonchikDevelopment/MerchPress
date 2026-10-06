@@ -63,3 +63,68 @@ Read, not changed: [0004_ops.sql:18-65](../../supabase/migrations/0004_ops.sql#L
 - Item 2: **GO.** `set_order_status` accepts both calls for any order from any caller (read above), the id reaches both through `useSession().user`, and the cashier and press notices already fire on an admin cancel. No SQL, RLS, RPC, migration or dependency is needed.
 - Items 3 and 4: **GO**.
 - Not touched: PIN login, audio and sound triggers, wake lock, order numbering, idempotency, `mergeOrders`, alert dedupe, Stats and CSV, the print-first form, design ordering, main menu look, palette and tokens, press screen layout.
+
+## Changes
+
+Commits on `gdansk-ux-9` (the last one holds this report, the acceptance tests and the phase doc):
+
+1. `feat(cashier)` own-only queue, Ready first: [cashierQueue.ts](../../src/lib/cashierQueue.ts), [check-cashier-queue.ts](../../scripts/check-cashier-queue.ts) (7 checks), [CashierPage.tsx](../../src/pages/CashierPage.tsx).
+2. `feat(admin)` Orders screen: [AdminOrdersPage.tsx](../../src/pages/AdminOrdersPage.tsx), [adminOrders.ts](../../src/lib/adminOrders.ts), [check-admin-orders.ts](../../scripts/check-admin-orders.ts) (6 checks), [AdminPage.tsx](../../src/pages/AdminPage.tsx), [OrderCard.tsx](../../src/components/OrderCard.tsx) (claimer lookup for ready), [index.css](../../src/index.css) (`.orders-filter`, `.orders-chip`).
+3. `fix(ux)` card meta lines and countdown bar: [OrderCard.tsx](../../src/components/OrderCard.tsx), [CashierPage.tsx](../../src/pages/CashierPage.tsx), [PressPage.tsx](../../src/pages/PressPage.tsx), [index.css](../../src/index.css) (`notice-countdown`, `.toast-notice`, `.notice-bar`).
+4. `docs`: this file, `12_ACCEPTANCE_TESTS.md` (version 15; C3 AC2, AC2b, AC10, C3.3, C3.12, C3.15 to C3.17; D1.7, D1.8, D1.10; new A7 with A7.1 to A7.9; K; M), `11_PHASE_GDANSK.md`.
+
+Per item:
+
+- **1 Cashier Queue.** Both sections come from one pure `cashierQueue(orders, myId)`: only `created_by === me`; In progress is `new` + `in_progress` FIFO by `created_at`, Ready is oldest `ready_at` first (unchanged order); no user id gives two empty lists. "Ready for pickup" is above "In progress". Another cashier's Ready card, with its Cancel button, can no longer be on screen. Dropped on the Ready cards: the `highlight` ring and "Yours" badge (every card is mine now). Empty text for Ready is "None of your orders is ready yet." `onReady`, `onLoaded`, `seenReady`, the badge and the cancel notice are untouched.
+- **2 Admin Orders.** As in the recon. The screen shows an empty state without an active event, filter chips with counts over all active orders, a card per order with the wait timer (`showWait`) and `showClaimedBy`. "Cancel order" is on every card; "✓ Picked up" only on Ready, with a double-tap guard, an error toast ("Couldn't update order #N. Check the connection and tap again.") and a refetch after success. The default Admin tab is untouched. One small change to a shared component: `OrderCard` now resolves the claimer name for `ready` orders too when `showClaimedBy` is set (before: only `in_progress`); only this screen shows a ready card with that prop.
+- **3 Card meta.** "Sold by <strong>Max</strong>" (`—` when the cashier name is missing) and "Claimed by <strong>Name</strong>" are two `.order-secondary` lines; an unknown claimer (or one still loading) gives a plain "Claimed" line in the same style, never a suffix on the first line. **Side effect:** Press's old " · claimed" suffix is gone, the plain line replaces it (same data, new place), and cashier Ready cards that have a `claimed_by` but no `showClaimedBy` now show a "Claimed" line (before: " · claimed" in the cashier line).
+- **4 Countdown bar.** A 3 px bar at the bottom edge of the Press and Cashier cancel notices, `transform: scaleX(1 → 0)` from the left, `linear forwards`, duration set inline from `NOTICE_MS` (no second copy of 30 s in CSS). `pointer-events: none` so it never blocks the Dismiss button. Under `prefers-reduced-motion: reduce` the bar is `display: none`: the notice, Dismiss and the 30 s timer are unchanged. Dismiss removes the notice (and the bar) at once. The bar animation starts when the notice mounts and the existing `setTimeout` starts a moment earlier, so they end together within a frame or two.
+
+Things to know:
+
+- **Everything is an interface rule.** `set_order_status` does not look at the caller, the order's `created_by` or any role ([0004_ops.sql:18-65](../../supabase/migrations/0004_ops.sql#L18-L65)). Hiding other cashiers' orders, the admin-only Orders screen and the admin "Picked up" are not enforced by the server: a modified client or anyone with the anon key can cancel or complete any order. Real enforcement needs a new RPC and RLS (two-round pattern), not done here.
+- **Freshness on the cashier screen** is as before: realtime plus the 20 s poll. A cashier can no longer cancel another cashier's order from the UI, but the server would still allow it.
+- **Admin cancel and the press notice:** the press notice does not fire for a cancelled `ready` order (R22 rule, `new` and `in_progress` only); the cashier notice does. Unchanged.
+- **Admin `useOrders`** adds one realtime subscription and a 20 s poll while the Orders tab is open, same as a Press or Cashier screen. It ends when the tab is left (the page remounts per tab).
+- **Tab strip:** six tabs on a 360 px phone scroll as the five did; no CSS change to `.tab`.
+- **Not the first animation:** see the recon; `enter`, `pulse-danger` and `shake` exist already.
+
+## Validation
+
+Run on the final tree:
+
+- `npx tsc -b`: clean.
+- `npm run lint`: clean.
+- `npm run build`: ok (PWA 9 precache entries).
+- `grep -c "Dev login" dist/assets/*.js`: 0.
+- `git --no-pager grep -n -i "service_role" -- src`: empty.
+- Every `scripts/check-*.ts` (18, including the new `check-cashier-queue.ts` and `check-admin-orders.ts`) and `node scripts/check-sounds.mjs`: all pass.
+- `git diff --stat main`: see the final message.
+
+## Nothing is verified on a device
+
+I have not opened this in a browser, on an iPhone, an Android phone or a laptop, and I did not write to the database, call `activate_event` or touch any real order, so no `orders` row was changed. The new screen and the bar were never rendered once. Covered by pure check scripts: the cashier filter and the admin grouping and sort. Everything else (the layout of the chips and the six-tab strip on a phone, the Ready-above-In-progress order, the bar animation and its timing against the 30 s timer, reduced motion, the confirm dialog from the Admin tab, realtime updates on the Orders screen, the cashier and press notices after an admin cancel) comes from code, CSS and the build passing only.
+
+## Manual steps
+
+Use the `ZZ-TEST` event only (active during the test; never on the real event), cashiers `C1` and `C2`, press `P1`, admin on a laptop. Do not call `activate_event`. Reload each device twice so the new build runs (the build tag on the login screen matches).
+
+**iPhone PWA, two cashier phones (`C1`, `C2`) and a press phone (`P1`):**
+1. `C1` and `C2` each create two orders (`C1`: #a, #b; `C2`: #c, #d). `P1` claims all four, sets #a and #c Ready, leaves #b and #d in progress.
+2. `C1`, Queue tab: "Ready for pickup" is above "In progress". Ready shows #a only, In progress shows #b only. #c and #d are nowhere, and no Cancel button for them (C3.15, C3.16). Counters and the tab badge count one each.
+3. `C2`: same, with #c, #d only.
+4. `C1` Ready overlay and sound fire only for #a when it turns Ready (C3.1, C3.3).
+5. `P1` cancels #b: `C1` sees the red notice under the tabs; look for the thin bar at its bottom edge shrinking over about 30 s; "Dismiss" removes it at once. Same on `P1` when another phone cancels a New or In progress order (D1.10, C3.17).
+6. On the iPhone turn on Settings, Accessibility, Motion, Reduce Motion; cancel another order: notice appears with no bar, Dismiss works, it disappears after 30 s. Turn Reduce Motion off again.
+7. Card meta: "Sold by **name**" and, on an In progress card, "Claimed by **name**", both the same size and weight with a bold name (D1.7, D1.8). Deactivate a test claimer on `ZZ-TEST` in Admin, Staff: the line reads plain "Claimed".
+
+**Laptop (admin) plus the phones above:**
+1. Admin: six tabs, "Orders" last; the default tab on opening is still Designs (A7.1). At 360 px the strip scrolls and tapping "Orders" keeps it in view.
+2. Orders: all active orders of both cashiers; Ready group first, then In progress, then New, oldest first inside each (A7.2). Chips All, New, In progress, Ready show counts and filter; the counts do not change when the filter changes (A7.3).
+3. Create an order on `C1`, claim it, set it Ready on `P1`: the card appears and moves group without a reload, no sound, no overlay, no notice on the admin screen (A7.4).
+4. "Cancel order" on `C2`'s In progress order (#d): dialog "Cancel order #N?", confirm. Card disappears. `C2`'s phone shows "Order #N was cancelled by <admin name>. Check with the press." with the bar. `P1` shows "Order #N cancelled by <admin name>" (A7.5).
+5. "Cancel order" on a Ready order: `C1` or `C2` gets the notice; `P1` gets none (A7.6). "Keep order" changes nothing.
+6. "✓ Picked up" on a Ready order: gone from Orders and from the cashier's Ready list; no button on New or In progress cards (A7.7). Double-tap: one action (A7.8). Turn Wi-Fi off and tap: red message, order stays (A7.9).
+7. Confirm nothing was changed on the real event: Admin, Events still shows the same active event.
+
+Nothing above has been run on a device.

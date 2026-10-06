@@ -47,7 +47,8 @@ export function TopBar({
                 : 'The screen is not being kept awake. Tap to retry.'
             }
           >
-            <span aria-hidden="true">💤</span> Screen may sleep
+            <span aria-hidden="true">💤</span>{' '}
+            {wakeState === 'unsupported' ? 'Set Auto-Lock to Never' : 'Screen may sleep'}
           </button>
         )}
         {children && <nav className="topbar-nav" aria-label="Sections">{children}</nav>}

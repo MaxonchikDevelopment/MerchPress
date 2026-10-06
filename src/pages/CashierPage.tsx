@@ -103,7 +103,7 @@ export function CashierPage() {
     [userId, dismissNotice],
   );
 
-  const { orders, connected, reload } = useOrders(eventId, { onReady, onLoaded, onCancelled });
+  const { orders, connected, loaded, reload } = useOrders(eventId, { onReady, onLoaded, onCancelled });
 
   const showError = useCallback((message: string) => {
     setToast(message);
@@ -145,7 +145,7 @@ export function CashierPage() {
     <div className="app">
       <TopBlock>
         <TopBar title="Cashier" soundRetry />
-        <OfflineBanner connected={connected} />
+        <OfflineBanner connected={connected} loaded={loaded} />
         <div className="cashier-tabs" role="tablist" aria-label="Cashier sections">
           <button
             role="tab"
@@ -199,7 +199,9 @@ export function CashierPage() {
                   <button className="btn btn-danger-outline btn-compact" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
-              {readyOrders.length === 0 && <EmptyState>None of your orders is ready yet.</EmptyState>}
+              {readyOrders.length === 0 && (
+                <EmptyState>{loaded ? 'None of your orders is ready yet.' : 'Loading orders…'}</EmptyState>
+              )}
             </div>
             <SectionLabel>In progress · {myOpenOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
@@ -208,7 +210,9 @@ export function CashierPage() {
                   <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
-              {myOpenOrders.length === 0 && <EmptyState>No open orders from you.</EmptyState>}
+              {myOpenOrders.length === 0 && (
+                <EmptyState>{loaded ? 'No open orders from you.' : 'Loading orders…'}</EmptyState>
+              )}
             </div>
           </section>
         </div>

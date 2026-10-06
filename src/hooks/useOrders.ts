@@ -31,6 +31,8 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
   const [subscribed, setSubscribed] = useState(false);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [fetchOk, setFetchOk] = useState(true);
+  // True after the first successful fetch for this event; pages show "Loading…" until then.
+  const [loaded, setLoaded] = useState(false);
 
   // Keep latest callbacks without re-subscribing.
   const cb = useRef(opts);
@@ -74,6 +76,7 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
     hasLoaded.current = true;
     setOrders(list);
     setFetchOk(true);
+    setLoaded(true);
     cb.current.onLoaded?.(list, kind);
   }, [eventId]);
 
@@ -83,6 +86,7 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
     hasLoaded.current = false;
     appliedSeq.current = reqSeq.current; // anything in flight for the old event is stale
     setOrders([]);
+    setLoaded(false);
     setFetchOk(true);
     void reload();
 
@@ -144,5 +148,5 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
   // Real connection state: socket subscribed, browser online, last query ok.
   const connected = subscribed && online && fetchOk;
 
-  return { orders, connected, reload };
+  return { orders, connected, loaded, reload };
 }

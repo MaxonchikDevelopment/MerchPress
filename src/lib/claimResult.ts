@@ -21,6 +21,11 @@ export function classifyClaim(row: ClaimRow | null, userId: string | undefined):
     if (userId && row.claimed_by === userId) return { kind: 'claimed' };
     return { kind: 'taken', by: row.claimed_by };
   }
-  // Still new or past in_progress without a claim we can attribute: not ours.
+  if (row.status === 'ready') {
+    // Another press claimed and finished it before this tap landed.
+    if (userId && row.claimed_by === userId) return { kind: 'claimed' };
+    return { kind: 'taken', by: row.claimed_by };
+  }
+  // Still new: the claim did not land.
   return { kind: 'failed' };
 }

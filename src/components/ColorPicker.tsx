@@ -28,7 +28,7 @@ export function ColorPicker({
               color: c.text,
               minWidth: 96,
               minHeight: 'var(--touch-min)',
-              opacity: dim ? 0.45 : 1,
+              opacity: dim ? 'var(--dim-opacity)' : 1,
               border: '1px solid var(--border-strong)',
             }}
           >

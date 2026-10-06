@@ -1,11 +1,10 @@
 import type { OrderStatus } from '../types/db';
 
-// Status color tokens — Hyrox-tuned, bright fills with black ink for contrast.
-// Values mirror the --status-* CSS tokens in index.css.
+// Status colours come from the --status-* CSS tokens in index.css (single source of truth).
 export const STATUS_COLORS: Record<OrderStatus, { bg: string; fg: string; label: string }> = {
-  new:         { bg: '#c5ff00', fg: '#0b0c0e', label: 'New' },
-  in_progress: { bg: '#f59e0b', fg: '#0b0c0e', label: 'In progress' },
-  ready:       { bg: '#38bdf8', fg: '#0b0c0e', label: 'Ready' },
-  completed:   { bg: '#3a3f4a', fg: '#c7ccd4', label: 'Completed' },
-  cancelled:   { bg: '#3a3f4a', fg: '#c7ccd4', label: 'Cancelled' },
+  new:         { bg: 'var(--status-new-bg)', fg: 'var(--status-new-ink)', label: 'New' },
+  in_progress: { bg: 'var(--status-progress-bg)', fg: 'var(--status-progress-ink)', label: 'In progress' },
+  ready:       { bg: 'var(--status-ready-bg)', fg: 'var(--status-ready-ink)', label: 'Ready' },
+  completed:   { bg: 'var(--status-done-bg)', fg: 'var(--status-done-ink)', label: 'Completed' },
+  cancelled:   { bg: 'var(--status-cancelled-bg)', fg: 'var(--status-cancelled-ink)', label: 'Cancelled' },
 };

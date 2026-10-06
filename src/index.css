@@ -111,11 +111,6 @@ body {
 
 body {
   background-color: var(--surface-page);
-  /* Ambient Hyrox atmosphere — lime + sky at very low opacity, fixed like Maxona. */
-  background-image:
-    radial-gradient(ellipse 75% 50% at 88% -5%, rgba(197, 255, 0, 0.05) 0%, transparent 62%),
-    radial-gradient(ellipse 60% 45% at 6% 108%, rgba(56, 189, 248, 0.04) 0%, transparent 62%);
-  background-attachment: fixed;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -125,7 +120,7 @@ body {
 }
 
 /* --------------------------------------------------------------------- */
-/* Focus — visible lime ring on keyboard navigation everywhere           */
+/* Focus: visible yellow ring on keyboard navigation everywhere          */
 /* --------------------------------------------------------------------- */
 :focus-visible {
   outline: none;
@@ -191,12 +186,12 @@ button {
   color: var(--accent-ink);
 }
 .btn-danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
+  background: var(--danger-bg);
+  border-color: var(--danger-bg);
+  color: var(--danger-ink);
 }
 
-/* Quiet secondary — dark surface, lime text */
+/* Quiet secondary: dark surface, yellow text */
 .btn-secondary {
   background: var(--surface-raised);
   border-color: var(--border-strong);
@@ -214,7 +209,7 @@ button {
   padding: 0 var(--sp-2);
 }
 .btn-text:hover {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .btn-lg {
@@ -284,7 +279,9 @@ select:focus-visible {
   position: relative;
   z-index: 10;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
-  background: color-mix(in srgb, var(--surface-card) 86%, var(--surface-page));
+  background: var(--surface-bar);
+  /* Brand stripe under the header block. Outside the box, so no layout change. */
+  box-shadow: 0 2px 0 var(--accent);
 }
 .topbar-title {
   flex: 1 1 0;
@@ -702,8 +699,8 @@ h2 {
   width: 100%;
   max-width: 360px;
   padding: var(--sp-8) var(--sp-5);
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--alert-bg);
+  color: var(--alert-ink);
   border-radius: var(--r-card);
 }
 .alert-title {
@@ -734,7 +731,7 @@ h2 {
 }
 
 /* --------------------------------------------------------------------- */
-/* Banner (degraded/offline — amber, reads as "degraded" not "error")    */
+/* Banner (degraded/offline: orange, reads as "degraded" not "error")    */
 /* --------------------------------------------------------------------- */
 .banner {
   padding: 10px var(--sp-4);
@@ -787,8 +784,8 @@ h2 {
   animation: enter var(--dur) var(--ease) both;
 }
 .toast-error {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  background: var(--danger-soft);
+  color: var(--danger-text);
   border-color: var(--danger);
 }
 
@@ -813,19 +810,19 @@ h2 {
 @keyframes pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(197, 255, 0, 0.55);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 14px rgba(197, 255, 0, 0);
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
 @keyframes pulse-danger {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--danger) 0%, transparent);
   }
 }
 @keyframes shake {
@@ -971,10 +968,15 @@ select {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 44px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M2 2l6 6 6-6' fill='none' stroke='%239a9a9a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* Arrow drawn with two gradients so it follows the tokens (a variable does not work inside url()) */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
   background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 16px 10px;
+  background-position:
+    calc(100% - 23px) 50%,
+    calc(100% - 16px) 50%;
+  background-size: 7px 7px, 7px 7px;
 }
 
 /* Staff: collapsed block for inactive people */

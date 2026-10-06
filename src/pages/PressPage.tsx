@@ -170,7 +170,7 @@ export function PressPage() {
                     {busy ? <><Spinner /> …</> : '✓ Ready'}
                   </button>
                 )}
-                <button className="btn btn-text" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
+                <button className="btn btn-text btn-text-danger" disabled={busy} onClick={() => askCancel(o)}>Cancel order</button>
               </OrderCard>
             );
           })}

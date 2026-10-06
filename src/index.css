@@ -212,7 +212,18 @@ button {
   font-size: 14px;
   padding: 0 var(--sp-2);
 }
-.btn-text:hover {
+@media (hover: hover) {
+  .btn-text:hover {
+    color: var(--text-primary);
+  }
+  .btn-text-danger:hover {
+    color: var(--danger-text);
+  }
+}
+.btn-text:active {
+  color: var(--text-primary);
+}
+.btn-text-danger:active {
   color: var(--danger-text);
 }
 
@@ -222,7 +233,12 @@ button {
   border-color: var(--danger);
   color: var(--danger-text);
 }
-.btn-danger-outline:not(:disabled):hover {
+@media (hover: hover) {
+  .btn-danger-outline:not(:disabled):hover {
+    background: var(--danger-soft);
+  }
+}
+.btn-danger-outline:not(:disabled):active {
   background: var(--danger-soft);
 }
 

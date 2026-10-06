@@ -136,7 +136,7 @@ export function EventEditor({
                 aria-label="Colour name"
                 style={{ flex: 1, minWidth: 120, background: c.hex, color: inkFor(c.hex) }}
               />
-              <button className="btn-text" onClick={() => setColors((cur) => cur.filter((_, j) => j !== i))}>Remove</button>
+              <button className="btn-text btn-text-danger" onClick={() => setColors((cur) => cur.filter((_, j) => j !== i))}>Remove</button>
             </div>
           ))}
         </div>

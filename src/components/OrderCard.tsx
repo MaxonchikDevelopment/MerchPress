@@ -6,24 +6,39 @@ import { eventOptions } from '../lib/eventOptions';
 import type { Design, Order } from '../types/db';
 import { StatusBadge } from './StatusBadge';
 import { WaitTimer } from './WaitTimer';
+import { ImageLightbox } from './ImageLightbox';
 
 // Design thumbnail with graceful fallback: shows the print photo, or the
 // design's initials on a muted tile when the photo is missing or fails to load.
 function DesignThumb({ design, side }: { design: Design | undefined; side: 'front' | 'back' }) {
   const [failed, setFailed] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
   if (!design) return null;
   const url = designPhotoUrl(side === 'front' ? design.photo_front : design.photo_back);
   const showImg = url && !failed;
   return (
     <div style={{ textAlign: 'center' }}>
       {showImg ? (
-        <img
-          src={url}
-          alt={`${side} — ${design.name}`}
-          loading="lazy"
-          onError={() => setFailed(true)}
-          style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }}
-        />
+        <>
+          <button
+            type="button"
+            aria-label={`Enlarge ${side} print — ${design.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoomed(true);
+            }}
+            style={{ padding: 0, border: 0, background: 'none', display: 'block', cursor: 'zoom-in' }}
+          >
+            <img
+              src={url}
+              alt={`${side} — ${design.name}`}
+              loading="lazy"
+              onError={() => setFailed(true)}
+              style={{ display: 'block', width: 84, height: 84, objectFit: 'cover', borderRadius: 'var(--r-inner)', border: '1px solid var(--border-subtle)' }}
+            />
+          </button>
+          {zoomed && <ImageLightbox src={url} alt={`${side} — ${design.name}`} onClose={() => setZoomed(false)} />}
+        </>
       ) : (
         <div
           aria-label={`${design.name} (no ${side} photo)`}

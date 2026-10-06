@@ -11,6 +11,7 @@ export interface EventRow {
   name: string;
   location: string | null;
   event_date: string | null;
+  event_end_date: string | null;
   is_active: boolean;
   created_at: string;
   shirt_colors: unknown | null; // jsonb [{ key, label, hex }]; null = app defaults

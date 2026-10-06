@@ -74,10 +74,14 @@ export function AdminOrdersPage() {
           <OrderCard key={o.id} order={o} designs={designs} showWait showClaimedBy>
             {o.status === 'ready' && (
               <button className="btn btn-lg btn-ok" disabled={completing.includes(o.id)} onClick={() => void pickedUp(o)}>
-                {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
+                {completing.includes(o.id) ? <><Spinner /> Confirming…</> : `✓ Picked up #${o.event_order_no}`}
               </button>
             )}
-            <button className="btn btn-danger-outline" disabled={completing.includes(o.id)} onClick={() => askCancel(o)}>
+            <button
+              className={o.status === 'ready' ? 'btn btn-danger-outline btn-compact' : 'btn btn-danger-outline'}
+              disabled={completing.includes(o.id)}
+              onClick={() => askCancel(o)}
+            >
               Cancel order
             </button>
           </OrderCard>

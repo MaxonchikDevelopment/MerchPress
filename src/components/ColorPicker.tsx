@@ -21,18 +21,12 @@ export function ColorPicker({
             key={c.key}
             onClick={() => onChange(c.key)}
             aria-pressed={selected}
+            aria-label={dim ? `${c.label}, not recommended for this print` : undefined}
             title={dim ? `${c.label} — not recommended for the selected print (still allowed)` : c.label}
-            className={selected ? 'btn btn-selected' : 'btn'}
-            style={{
-              background: c.hex,
-              color: c.text,
-              minWidth: 96,
-              minHeight: 'var(--touch-min)',
-              opacity: dim ? 'var(--dim-opacity)' : 1,
-              border: '1px solid var(--border-strong)',
-            }}
+            className={`btn swatch${selected ? ' swatch-selected' : ''}${dim ? ' swatch-dim' : ''}`}
+            style={{ background: c.hex, color: c.text }}
           >
-            {c.label}
+            {selected ? `✓ ${c.label}` : c.label}
           </button>
         );
       })}

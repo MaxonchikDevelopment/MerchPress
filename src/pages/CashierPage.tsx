@@ -194,9 +194,9 @@ export function CashierPage() {
                     disabled={completing.includes(o.id)}
                     onClick={() => complete(o)}
                   >
-                    {completing.includes(o.id) ? <><Spinner /> Confirming…</> : '✓ Picked up'}
+                    {completing.includes(o.id) ? <><Spinner /> Confirming…</> : `✓ Picked up #${o.event_order_no}`}
                   </button>
-                  <button className="btn btn-danger-outline" onClick={() => askCancel(o)}>Cancel order</button>
+                  <button className="btn btn-danger-outline btn-compact" onClick={() => askCancel(o)}>Cancel order</button>
                 </OrderCard>
               ))}
               {readyOrders.length === 0 && <EmptyState>None of your orders is ready yet.</EmptyState>}
@@ -396,7 +396,7 @@ function NewOrderForm({
       {narrow && toastEl}
       {summary && <div className="send-summary">{summary}</div>}
       <div className="send-row">
-        <button className="btn btn-secondary btn-reset" disabled={!dirty || busy} onClick={clearDraft}>
+        <button className="btn btn-reset" disabled={!dirty || busy} onClick={clearDraft}>
           Reset
         </button>
         <button className="btn btn-lg btn-primary" disabled={!canSubmit} onClick={submit}>
@@ -464,7 +464,7 @@ function NewOrderForm({
         )}
         {dimmed.length > 0 && (
           <div className="muted" style={{ marginTop: 'var(--sp-2)', fontSize: 14 }}>
-            Dimmed colours are not recommended for this print (still allowed)
+            Hatched colors are not recommended for this print (still allowed)
           </div>
         )}
       </div>

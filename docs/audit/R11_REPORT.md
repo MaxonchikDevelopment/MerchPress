@@ -22,7 +22,7 @@ Written before any other file was created or edited. Branch `gdansk-fix-8` off `
 ### vite.config.ts and Vercel
 - `vite.config.ts:6-30`: `defineConfig({ plugins: [react(), VitePWA({ registerType: 'autoUpdate', includeAssets: [...], manifest })] })`. No `define`, no `process` use yet. `tsconfig.node.json` includes only `vite.config.ts`, has `types: ["node"]`, `allowImportingTsExtensions: true`, `erasableSyntaxOnly: true`, so `node:child_process` and an import of `./src/lib/buildId.ts` both type-check.
 - `vercel.json` only has the SPA rewrite. It sets no env and no build command, so the build is Vercel's default (`npm run build`).
-- Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA` to the build: Vercel documents it as a System Environment Variable, available at build time when "Automatically expose System Environment Variables" is on (the default). **I cannot verify this from the repo or from here**: the project setting lives in the Vercel dashboard, and `.vercel/` holds only the link files, no env. If it is off, the fallback `git rev-parse --short HEAD` still works, because Vercel clones the repo with `.git`; if that fails too, the tag shows `dev`. Check on the first deploy that the tag is a real hash.
+- Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA` to the build: Vercel documents it as a System Environment Variable, available at build time when "Automatically expose System Environment Variables" is on (the default). **Update: verified on production, the build tag on the login screen showed the merge commit hash (0b98022) on 07.10.2026.** Original note: I could not verify this from the repo or from here: the project setting lives in the Vercel dashboard, and `.vercel/` holds only the link files, no env. If it is off, the fallback `git rev-parse --short HEAD` still works, because Vercel clones the repo with `.git`; if that fails too, the tag shows `dev`. Check on the first deploy that the tag is a real hash.
 - `process.env.VERCEL_GIT_COMMIT_SHA` is read in Node at config time and inlined as a string by `define`; it is not a `VITE_` variable and is a public commit hash, not a secret.
 - Local dev: `dist`, `.env.local` exist; `.gitignore:11` ignores `dist`. The PWA plugin generates `dist/sw.js` with a Workbox precache manifest (revision per file), see 3b below for the check.
 
@@ -44,7 +44,7 @@ Written before any other file was created or edited. Branch `gdansk-fix-8` off `
 - Event poll interval is `EVENT_POLL_MS = 20_000` (`SessionContext.tsx:16`), so "within about 30 seconds" in the dialog texts is the user's wording and is on the safe side.
 
 ### Cannot verify
-- Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA` to this project's build (dashboard setting).
+- (Resolved) Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA`: verified on production, the build tag on the login screen showed the merge commit hash (0b98022) on 07.10.2026.
 - Dialogs, build tag and layout on a real device.
 
 ## What changed
@@ -101,5 +101,5 @@ all 11 checks passed
 ## Not verified
 
 - **The two dialogs, the build tag and the layout (900 px breakpoint, sticky Send bar, 11 px tag) are not verified on a device.** Only type-check, lint, build and the pure-logic script ran. The dialog is the existing `ConfirmDialog`, fixed-position; its ancestors end their `enter` animation with `transform: none`, so I expect no containing-block problem, but I did not see it render.
-- Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA` to the build (dashboard setting). Check that the first deployed tag is a real hash, not the fallback.
+- (Resolved) Whether Vercel exposes `VERCEL_GIT_COMMIT_SHA`: verified on production, the build tag on the login screen showed the merge commit hash (0b98022) on 07.10.2026.
 - No real data touched, `activate_event` and `staff_update` were not called.

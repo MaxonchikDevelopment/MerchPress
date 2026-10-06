@@ -53,7 +53,7 @@ export function TopBar({
         )}
         {soundRetry && user && (wakeState === 'released' || wakeState === 'unsupported') && (
           <button
-            className="btn btn-bar"
+            className="btn btn-bar btn-wake"
             aria-label={wakeState === 'unsupported' ? 'Screen may sleep. Set Auto-Lock to Never.' : 'Screen may sleep. Tap to retry.'}
             onClick={() => {
               retryWakeLock();
@@ -66,6 +66,7 @@ export function TopBar({
           >
             <span aria-hidden="true">💤</span>
             <span className="lbl">{wakeState === 'unsupported' ? 'Set Auto-Lock to Never' : 'Screen may sleep'}</span>
+            {wakeState === 'unsupported' && <span className="lbl-phone">Auto-Lock → Never</span>}
           </button>
         )}
         <UserMenu name={user?.name} onLogout={logout} />

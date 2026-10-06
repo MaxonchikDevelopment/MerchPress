@@ -32,6 +32,7 @@ This docs commit also deletes `supabase/seed.sql` and rewrites README and the au
 | `gdansk-fix-2` (R5) | Alert sounds regenerated (1.2 s and 1.6 s, harmonics, -1 dBFS) with `scripts/check-sounds.mjs`; "Test sound" button in TopBar on Press and Cashier. Audibility not verified, devices only. See `R5_REPORT.md`. |
 | `gdansk-fix-3` (R6) | Pill shows "Set Auto-Lock to Never" when wake lock is unsupported (title was invisible on touch); a Claim that lands on a `ready` row is now `taken` (or `claimed` if it is ours) instead of "Check the connection"; `scripts/check-claim-result.ts`, see `R6_REPORT.md`. |
 | `gdansk-fix-4` (R7) | Date inputs and `1fr` grid columns can no longer stretch the page on narrow phones (`minmax(0, 1fr)`, date input `min-width: 0`); tap a print thumbnail to enlarge it (`ImageLightbox`, below the Ready alert); a muted line says why "Send to press" is disabled (`sendHint`, `scripts/check-send-hint.ts`). Not verified on a device. See `R7_REPORT.md`. |
+| `gdansk-fix-5` (R8) | Round 1 of 2: migration `0005_event_end_date.sql` (optional `events.event_end_date` plus `events_end_date_check`) and rollback written, **not applied**; no `src/` change. Round 2 (apply after backup and approval, then client) is pending. See `R8_REPORT.md`. |
 
 ## Deferred
 | Item | Why | Return condition |

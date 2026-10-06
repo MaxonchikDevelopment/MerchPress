@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { claimOrder, setOrderStatus, staffName } from '../lib/orderStatus';
 import { alertNewOrder, SeenSet } from '../lib/notify';
+import { cancelNotice } from '../lib/cancelNotice';
 import { OVERDUE_MINS, waitMinutes } from '../lib/wait';
 import { useSession } from '../context/SessionContext';
 import { useDesigns } from '../hooks/useDesigns';
@@ -24,6 +25,8 @@ export function PressPage() {
   const [busyIds, setBusyIds] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Cancel notices live apart from the error toast so neither overwrites the other.
+  const [notices, setNotices] = useState<{ key: string; text: string }[]>([]);
   // Tick so overdue edge/pulse escalates over time (visual only; never re-sorts).
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -48,7 +51,21 @@ export function PressPage() {
     [seenNew],
   );
 
-  const { orders, connected, reload } = useOrders(eventId, { onNew, onLoaded });
+  const dismissNotice = useCallback((key: string) => setNotices((l) => l.filter((n) => n.key !== key)), []);
+  const userId = user?.id;
+  const onCancelled = useCallback(
+    async (next: Order, prev: Order | null) => {
+      const n = cancelNotice(prev, next, userId);
+      if (!n) return;
+      const name = n.by ? await staffName(n.by) : null;
+      const text = `Order #${n.orderNo} cancelled by ${name ?? 'someone'}`;
+      setNotices((l) => [...l.filter((x) => x.key !== next.id), { key: next.id, text }]);
+      setTimeout(() => dismissNotice(next.id), 15_000);
+    },
+    [userId, dismissNotice],
+  );
+
+  const { orders, connected, reload } = useOrders(eventId, { onNew, onLoaded, onCancelled });
 
   const showError = useCallback((message: string) => {
     setToast(message);
@@ -112,6 +129,17 @@ export function PressPage() {
       </TopBlock>
       <div className="content">
         {toast && <div style={{ marginBottom: 'var(--sp-3)' }}><Toast message={toast} tone="error" /></div>}
+        {notices.map((n) => (
+          <div
+            key={n.key}
+            className="toast toast-error"
+            role="status"
+            style={{ marginBottom: 'var(--sp-3)', justifyContent: 'space-between' }}
+          >
+            <span>{n.text}</span>
+            <button className="btn btn-text" onClick={() => dismissNotice(n.key)}>Dismiss</button>
+          </div>
+        ))}
         <div className="muted" style={{ marginBottom: 'var(--sp-3)', fontWeight: 600 }} aria-live="polite">
           {queue.length} in queue
         </div>
@@ -128,7 +156,7 @@ export function PressPage() {
                 : 'var(--status-progress-bg)';
             const busy = busyIds.includes(o.id);
             return (
-              <OrderCard key={o.id} order={o} designs={designs} showWait edgeColor={edgeColor} alert={overdue}>
+              <OrderCard key={o.id} order={o} designs={designs} showWait edgeColor={edgeColor} alert={overdue} showClaimedBy>
                 {o.status === 'new' ? (
                   <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => setStatus(o, 'in_progress')}>
                     {busy ? <><Spinner /> …</> : 'Claim — start printing'}

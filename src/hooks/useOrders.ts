@@ -11,6 +11,9 @@ interface Options {
   onNew?: (order: Order) => void;
   // Fired when an order transitions into 'ready'.
   onReady?: (order: Order) => void;
+  // Fired for every realtime UPDATE that sets 'cancelled', with the old row when the
+  // server sends it. Display only; the list update above it is unchanged.
+  onCancelled?: (order: Order, prev: Order | null) => void;
   // Called after every successful query with the full list. `initial` is the
   // first successful load for this event (seed dedupe sets silently);
   // `refetch` covers any later one (alert for what was missed during a gap).
@@ -100,6 +103,7 @@ export function useOrders(eventId: string | null, opts: Options = {}) {
         if (next.status === 'ready' && prev?.status !== 'ready') {
           cb.current.onReady?.(next);
         }
+        if (next.status === 'cancelled') cb.current.onCancelled?.(next, prev);
       },
       onDelete: (id) => {
         rtDeletes.current.add(id);

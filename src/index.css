@@ -893,3 +893,19 @@ h2 {
   padding: 0 var(--sp-2);
   font-size: 16px;
 }
+
+/* Login: name tiles in two columns; an odd last tile (or a single one) spans the full row */
+.name-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.name-grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.who-heading {
+  margin-bottom: var(--sp-4);
+}
+.who-heading h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+}

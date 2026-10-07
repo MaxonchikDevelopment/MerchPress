@@ -3,23 +3,21 @@ import { useSession } from '../context/SessionContext';
 import { TopBar, TopBlock } from '../components/TopBar';
 import { AdminEventsPage } from './AdminEventsPage';
 import { AdminDesignsPage } from './AdminDesignsPage';
-import { AdminCompatPage } from './AdminCompatPage';
 import { AdminStaffPage } from './AdminStaffPage';
 import { AdminOrdersPage } from './AdminOrdersPage';
 import { StatsPage } from './StatsPage';
 import { BuildTag } from '../components/BuildTag';
 
-type Tab = 'events' | 'designs' | 'compat' | 'staff' | 'stats' | 'orders';
+type Tab = 'events' | 'designs' | 'staff' | 'stats' | 'orders';
 
 const TAB_LABELS: Record<Tab, string> = {
   events: 'Events',
   designs: 'Designs',
-  compat: 'Compatibility',
   staff: 'Staff',
   stats: 'Stats',
   orders: 'Orders',
 };
-const TABS: Tab[] = ['events', 'designs', 'compat', 'staff', 'stats', 'orders'];
+const TABS: Tab[] = ['events', 'designs', 'staff', 'stats', 'orders'];
 
 export function AdminPage() {
   const { activeEvent } = useSession();
@@ -36,7 +34,7 @@ export function AdminPage() {
               className={tab === t ? 'tab tab-active' : 'tab'}
               onClick={(e) => {
                 setTab(t);
-                // Six tabs overflow the strip on phones; keep the tapped one in view.
+                // Five tabs overflow the strip on phones; keep the tapped one in view.
                 e.currentTarget.scrollIntoView?.({ inline: 'center', block: 'nearest' });
               }}
               aria-current={tab === t ? 'page' : undefined}
@@ -49,7 +47,6 @@ export function AdminPage() {
       <div className="content page-enter" key={tab} style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
         {tab === 'events' && <AdminEventsPage />}
         {tab === 'designs' && <AdminDesignsPage />}
-        {tab === 'compat' && <AdminCompatPage />}
         {tab === 'staff' && <AdminStaffPage />}
         {tab === 'stats' && <StatsPage />}
         {tab === 'orders' && <AdminOrdersPage />}

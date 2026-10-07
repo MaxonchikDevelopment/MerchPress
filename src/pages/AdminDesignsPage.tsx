@@ -10,6 +10,7 @@ import { useSession } from '../context/SessionContext';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
+import { AdminCompatPage } from './AdminCompatPage';
 import type { Design, DesignType } from '../types/db';
 
 // designs.type is `not null` with no default (0001_init.sql). The UI no longer offers it,
@@ -18,7 +19,27 @@ const DEFAULT_DESIGN_TYPE: DesignType = 'big';
 
 const STAGE_LABEL: Record<UploadStage, string> = { preparing: 'Preparing photo…', uploading: 'Uploading…' };
 
+type SubTab = 'catalog' | 'compat';
+
+// Catalog and Compatibility share one admin tab. Compatibility unmounts on switch-away, so it refetches.
 export function AdminDesignsPage() {
+  const [sub, setSub] = useState<SubTab>('catalog');
+  return (
+    <div className="grid" style={{ gap: 'var(--sp-4)' }}>
+      <div className="admin-subtabs" role="tablist" aria-label="Designs sections">
+        <button role="tab" aria-selected={sub === 'catalog'} className={sub === 'catalog' ? 'tab tab-active' : 'tab'} onClick={() => setSub('catalog')}>
+          Catalog
+        </button>
+        <button role="tab" aria-selected={sub === 'compat'} className={sub === 'compat' ? 'tab tab-active' : 'tab'} onClick={() => setSub('compat')}>
+          Compatibility
+        </button>
+      </div>
+      {sub === 'catalog' ? <DesignsCatalog /> : <AdminCompatPage />}
+    </div>
+  );
+}
+
+function DesignsCatalog() {
   const { activeEvent } = useSession();
   const { events } = useEvents();
   // Selector defaults to the active event; explicit pick overrides it.
@@ -95,7 +116,7 @@ export function AdminDesignsPage() {
 
         <div>
           <SectionLabel>Design name</SectionLabel>
-          <input placeholder="e.g. Finisher Front" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
+          <input placeholder="e.g. City Map" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
         </div>
 
         <div>
@@ -271,9 +292,7 @@ function DesignCard({
                 <div className="design-photo design-photo-empty">{initials(d.name)}</div>
               )}
               <div className="muted design-side-label">{label}</div>
-              {!editing && (
-                <PhotoReplace label={`Replace ${side}`} disabled={!!working} onPick={(f) => replacePhoto(side, f)} />
-              )}
+              <PhotoReplace label={`Replace ${side} photo`} disabled={!!working} onPick={(f) => replacePhoto(side, f)} />
             </div>
           );
         })}
@@ -282,12 +301,15 @@ function DesignCard({
       {editing ? (
         <>
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Design name" style={{ width: '100%' }} />
-          <ColorToggles
-            palette={palette}
-            selected={colors}
-            onToggle={(k) => setColors((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]))}
-          />
-          <div className="row">
+          <div>
+            <SectionLabel>Compatible colors</SectionLabel>
+            <ColorToggles
+              palette={palette}
+              selected={colors}
+              onToggle={(k) => setColors((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]))}
+            />
+          </div>
+          <div className="design-edit-actions">
             <button className="btn btn-primary" onClick={saveEdit} disabled={!!working}>
               {working === 'Saving…' ? <><Spinner /> Saving…</> : 'Save'}
             </button>
@@ -310,7 +332,7 @@ function DesignCard({
           </div>
         </>
       )}
-      {working && !editing && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
+      {working && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
       {err && <div className="toast toast-error" role="alert">{err}</div>}
       {zoom && <ImageLightbox src={zoom.src} alt={zoom.alt} onClose={() => setZoom(null)} />}
     </div>

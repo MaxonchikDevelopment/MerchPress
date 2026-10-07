@@ -195,7 +195,7 @@ export function CashierPage() {
             <SectionLabel>Ready for pickup · {readyOrders.length}</SectionLabel>
             <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', marginBottom: 'var(--sp-5)' }}>
               {readyOrders.map((o) => (
-                <OrderCard key={o.id} order={o} designs={designs}>
+                <OrderCard key={o.id} order={o} designs={designs} showClaimedBy>
                   <button
                     className="btn btn-lg btn-ok"
                     disabled={completing.includes(o.id)}

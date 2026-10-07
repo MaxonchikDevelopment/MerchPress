@@ -17,3 +17,21 @@ Written before any other file was edited. Line numbers are for 4eb261e. Everythi
 ### Docs affected
 - `12_ACCEPTANCE_TESTS.md`: AC5 (A7), AC10 / C3.12 (Cashier, "Claimed by" on Ready), AC8 and A4.13, A4.19, A4.21, F6.12 (tab path "Admin → Compatibility"), plus the version line.
 - `11_PHASE_GDANSK.md`: new R34 row.
+
+## What changed
+
+Four commits on `gdansk-fix-feedback-1`.
+
+1. `feat(ui): Printed by on ready cards`: [OrderCard.tsx](../../src/components/OrderCard.tsx) picks the label from `order.status` ("Printed" for ready, "Claimed" otherwise) for both the named line and the unnamed fallback; [CashierPage.tsx](../../src/pages/CashierPage.tsx) passes `showClaimedBy` to the Ready list. The Sold by line is unchanged. No script asserted the old wording, so no script changed.
+2. `fix(ui): design edit mode actions, photo replace and placeholder`: [AdminDesignsPage.tsx](../../src/pages/AdminDesignsPage.tsx) edit mode gets the "Compatible colors" `SectionLabel`, a `.design-edit-actions` row (two equal columns, 56 px, top border and spacing; Save `btn-primary`, Cancel plain `btn`); `PhotoReplace` renders in both modes with the labels "Replace front photo" / "Replace back photo"; the working line shows in edit mode; placeholder "e.g. City Map".
+3. `feat(admin): Compatibility inside Designs`: the old page body is now `DesignsCatalog` (unchanged); `AdminDesignsPage` is a thin wrapper with the Catalog / Compatibility `tablist`. `AdminPage` loses `compat` from `Tab`, `TAB_LABELS`, `TABS` and the render line. New `.admin-subtabs` CSS.
+4. Docs: this report, `12_ACCEPTANCE_TESTS.md` (version 21, AC0, AC5, AC8, AC10, AC1 and the cases that named the Compatibility tab; new A4.22-A4.25, C3.19), `11_PHASE_GDANSK.md` row.
+
+Untouched as required: `useOrders`, `mergeOrders`, `useStaffName`, `useDesigns`, the compat matrix logic, `uploadDesignPhoto`, `replacePhoto`, `saveEdit`, `remove`, update policy, audio, wake lock, PIN flow, order creation. `package.json` and the lockfile are unchanged. No real data touched, `activate_event` not called.
+
+## Deviations and notes
+
+- Item 5 reuses `.tab` / `.tab-active` and the `.cashier-tabs` layout, but through a new `.admin-subtabs` class, because `.cashier-tabs` is hidden from 900 px up (see Recon).
+- The "Printed by" name comes from `claimed_by` (the person who claimed the order), as the existing line does. If another press person moves the order to Ready, the card still names the claimer. That is the data the app has; a separate "readied by" would need a schema change.
+- Press shows only new and in-progress orders, so it never renders the Ready label.
+- `R1_REPORT.md` still mentions "Finisher Front": historical record, not user-facing.

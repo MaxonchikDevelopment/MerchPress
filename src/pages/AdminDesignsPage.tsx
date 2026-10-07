@@ -95,7 +95,7 @@ export function AdminDesignsPage() {
 
         <div>
           <SectionLabel>Design name</SectionLabel>
-          <input placeholder="e.g. Finisher Front" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
+          <input placeholder="e.g. City Map" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%' }} />
         </div>
 
         <div>
@@ -271,9 +271,7 @@ function DesignCard({
                 <div className="design-photo design-photo-empty">{initials(d.name)}</div>
               )}
               <div className="muted design-side-label">{label}</div>
-              {!editing && (
-                <PhotoReplace label={`Replace ${side}`} disabled={!!working} onPick={(f) => replacePhoto(side, f)} />
-              )}
+              <PhotoReplace label={`Replace ${side} photo`} disabled={!!working} onPick={(f) => replacePhoto(side, f)} />
             </div>
           );
         })}
@@ -282,12 +280,15 @@ function DesignCard({
       {editing ? (
         <>
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Design name" style={{ width: '100%' }} />
-          <ColorToggles
-            palette={palette}
-            selected={colors}
-            onToggle={(k) => setColors((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]))}
-          />
-          <div className="row">
+          <div>
+            <SectionLabel>Compatible colors</SectionLabel>
+            <ColorToggles
+              palette={palette}
+              selected={colors}
+              onToggle={(k) => setColors((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]))}
+            />
+          </div>
+          <div className="design-edit-actions">
             <button className="btn btn-primary" onClick={saveEdit} disabled={!!working}>
               {working === 'Saving…' ? <><Spinner /> Saving…</> : 'Save'}
             </button>
@@ -310,7 +311,7 @@ function DesignCard({
           </div>
         </>
       )}
-      {working && !editing && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
+      {working && <div className="muted" style={{ fontSize: 13 }}><Spinner /> {working}</div>}
       {err && <div className="toast toast-error" role="alert">{err}</div>}
       {zoom && <ImageLightbox src={zoom.src} alt={zoom.alt} onClose={() => setZoom(null)} />}
     </div>

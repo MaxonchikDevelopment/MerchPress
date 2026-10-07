@@ -10,6 +10,7 @@ import { useSession } from '../context/SessionContext';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
+import { AdminCompatPage } from './AdminCompatPage';
 import type { Design, DesignType } from '../types/db';
 
 // designs.type is `not null` with no default (0001_init.sql). The UI no longer offers it,
@@ -18,7 +19,27 @@ const DEFAULT_DESIGN_TYPE: DesignType = 'big';
 
 const STAGE_LABEL: Record<UploadStage, string> = { preparing: 'Preparing photo…', uploading: 'Uploading…' };
 
+type SubTab = 'catalog' | 'compat';
+
+// Catalog and Compatibility share one admin tab. Compatibility unmounts on switch-away, so it refetches.
 export function AdminDesignsPage() {
+  const [sub, setSub] = useState<SubTab>('catalog');
+  return (
+    <div className="grid" style={{ gap: 'var(--sp-4)' }}>
+      <div className="admin-subtabs" role="tablist" aria-label="Designs sections">
+        <button role="tab" aria-selected={sub === 'catalog'} className={sub === 'catalog' ? 'tab tab-active' : 'tab'} onClick={() => setSub('catalog')}>
+          Catalog
+        </button>
+        <button role="tab" aria-selected={sub === 'compat'} className={sub === 'compat' ? 'tab tab-active' : 'tab'} onClick={() => setSub('compat')}>
+          Compatibility
+        </button>
+      </div>
+      {sub === 'catalog' ? <DesignsCatalog /> : <AdminCompatPage />}
+    </div>
+  );
+}
+
+function DesignsCatalog() {
   const { activeEvent } = useSession();
   const { events } = useEvents();
   // Selector defaults to the active event; explicit pick overrides it.

@@ -1025,6 +1025,17 @@ h2 {
   }
 }
 
+/* Admin Designs sub-tabs: the .cashier-tabs strip without its 900 px hide, 56 px targets */
+.admin-subtabs {
+  display: flex;
+  gap: var(--sp-1);
+}
+.admin-subtabs .tab {
+  flex: 1;
+  min-height: 56px;
+  text-transform: none;
+}
+
 /* Admin design card: front and back side by side, one row of equal actions */
 .design-sides {
   display: grid;
